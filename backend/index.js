@@ -4,7 +4,7 @@ import cors from 'cors'
 import connectDB from './config/db.js'
 import expenseRoutes from './routes/expenseRoutes.js'
 import groupRoutes from './routes/groupRoutes.js'
-
+import aiRoutes from './routes/aiRoutes.js'
 
 dotenv.config();
 connectDB();
@@ -15,4 +15,6 @@ app.use(express.json());
 
 app.use('/api', groupRoutes)
 app.use('/api', expenseRoutes);
+app.use('/api', aiRoutes)
+
 app.listen(5000, ()=> console.log('Server running in port 5000'))
