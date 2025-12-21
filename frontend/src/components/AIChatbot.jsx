@@ -52,7 +52,7 @@ const handleSend = async () => {
             await executeTask(action);
             setMessages(prev => [
               ...prev, 
-              { role: "model", parts: [{ text: `✅ I've successfully performed that task for you!` }] }
+              { role: "model", parts: [{ text: ` I've successfully performed that task for you!` }] }
             ]);
           }
         } catch (jsonErr) {
@@ -70,7 +70,7 @@ const handleSend = async () => {
       // Optional: Add a message to the chat so the user knows it failed
       setMessages(prev => [
         ...prev, 
-        { role: "model", parts: [{ text: "⚠️ Sorry, I'm having trouble connecting to the server right now." }] }
+        { role: "model", parts: [{ text: " Sorry, I'm having trouble connecting to the server right now." }] }
       ]);
     } finally {
       setLoading(false);
