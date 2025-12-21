@@ -68,7 +68,7 @@ const SettlementHistory = ({ settlements, groups }) => {
             </div>
             <div className="text-right">
               <p className="text-sm text-slate-600 mb-1">Amount</p>
-              <p className="text-2xl font-bold text-emerald-600">${parseFloat(settlement.amount).toFixed(2)}</p>
+              <p className="text-2xl font-bold text-emerald-600">₹{parseFloat(settlement.amount).toFixed(2)}</p>
             </div>
           </div>
         </motion.div>

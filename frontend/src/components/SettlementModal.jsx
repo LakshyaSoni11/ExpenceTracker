@@ -81,14 +81,14 @@ const SettlementModal = ({ isOpen, onClose, onSubmit, group, expenses, settlemen
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-125 bg-gray-300">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold text-slate-900">Settle Dues - {group.name}</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6 mt-4">
           <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-            <h4 className="text-sm font-semibold text-blue-900 mb-2">Current Balances</h4>
+            <h4 className="text-sm font-semibold text-emerald-500 mb-2">Current Balances</h4>
             <div className="grid grid-cols-2 gap-2">
               {Object.entries(balances).map(([member, balance]) => (
                 <div key={member} className="flex justify-between text-xs p-1 bg-white/50 rounded">
@@ -110,7 +110,7 @@ const SettlementModal = ({ isOpen, onClose, onSubmit, group, expenses, settlemen
                 id="from"
                 value={from}
                 onChange={(e) => setFrom(e.target.value)}
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all bg-white"
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none transition-all bg-white"
               >
                 <option value="">Select</option>
                 {group.members.map(member => (
@@ -127,7 +127,7 @@ const SettlementModal = ({ isOpen, onClose, onSubmit, group, expenses, settlemen
                 id="to"
                 value={to}
                 onChange={(e) => setTo(e.target.value)}
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all bg-white"
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none transition-all bg-white"
               >
                 <option value="">Select</option>
                 {group.members.map(member => (
@@ -146,21 +146,21 @@ const SettlementModal = ({ isOpen, onClose, onSubmit, group, expenses, settlemen
                 <button 
                   type="button"
                   onClick={() => setAmount(Math.abs(balances[from]).toFixed(2))}
-                  className="text-xs text-blue-600 hover:underline font-medium"
+                  className="text-xs text-emerald-600 hover:underline font-medium"
                 >
-                  Settle full debt (${Math.abs(balances[from]).toFixed(2)})
+                  Settle full debt (₹{Math.abs(balances[from]).toFixed(2)})
                 </button>
               )}
             </div>
             <div className="relative">
-              <span className="absolute left-3 top-2.5 text-slate-400">$</span>
+              <span className="absolute left-3 top-2.5 text-slate-400">₹</span>
               <input
                 id="amount"
                 type="number"
                 step="0.01"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
-                className="w-full pl-7 pr-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                className="w-full pl-7 pr-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none"
                 placeholder="0.00"
               />
             </div>
@@ -180,7 +180,7 @@ const SettlementModal = ({ isOpen, onClose, onSubmit, group, expenses, settlemen
             </Button>
             <Button
               type="submit"
-              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white shadow-md transition-all active:scale-95"
+              className="flex-1 bg-linear-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white shadow-md transition-all active:scale-95"
             >
               Record Settlement
             </Button>

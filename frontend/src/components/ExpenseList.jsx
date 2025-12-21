@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Receipt, Calendar, User, DollarSign, Trash2 } from 'lucide-react';
+import { Receipt, Calendar, User, IndianRupee, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   AlertDialog,
@@ -62,9 +62,9 @@ const ExpenseList = ({ expenses, groups, onDelete }) => {
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
                 <div className="flex items-center gap-2 text-sm">
-                  <DollarSign className="w-4 h-4 text-emerald-600" />
+                  <IndianRupee className="w-4 h-4 text-emerald-600" />
                   <span className="text-slate-600">Amount:</span>
-                  <span className="font-semibold text-slate-900">${parseFloat(expense.amount).toFixed(2)}</span>
+                  <span className="font-semibold text-slate-900">₹{parseFloat(expense.amount).toFixed(2)}</span>
                 </div>
                 <div className="flex items-center gap-2 text-sm">
                   <User className="w-4 h-4 text-blue-600" />
@@ -84,7 +84,7 @@ const ExpenseList = ({ expenses, groups, onDelete }) => {
                   {expense.splits.map((split, idx) => (
                     <div key={idx} className="bg-slate-50 px-3 py-2 rounded-lg text-sm">
                       <span className="text-slate-700">{split.member}:</span>
-                      <span className="font-semibold text-slate-900 ml-2">${parseFloat(split.amount).toFixed(2)}</span>
+                      <span className="font-semibold text-slate-900 ml-2">₹{parseFloat(split.amount).toFixed(2)}</span>
                     </div>
                   ))}
                 </div>

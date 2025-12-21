@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { DollarSign, Percent, Users } from 'lucide-react';
+import { IndianRupee, Percent, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
@@ -93,7 +93,7 @@ const ExpenseModal = ({ isOpen, onClose, onSubmit, group }) => {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-150  max-h-[90vh] overflow-y-auto bg-gray-300">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold text-slate-900">Add Expense to {group.name}</DialogTitle>
         </DialogHeader>
@@ -155,7 +155,7 @@ const ExpenseModal = ({ isOpen, onClose, onSubmit, group }) => {
                   Equal
                 </TabsTrigger>
                 <TabsTrigger value="exact">
-                  <DollarSign className="w-4 h-4 mr-1" />
+                  <IndianRupee className="w-4 h-4 mr-1" />
                   Exact
                 </TabsTrigger>
                 <TabsTrigger value="percent">

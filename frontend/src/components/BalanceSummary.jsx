@@ -120,15 +120,15 @@ const BalanceSummary = ({ groups, expenses, settlements }) => {
                       {balance > 0.01 ? (
                         <div className="flex items-center gap-2 text-emerald-600">
                           <TrendingUp className="w-4 h-4" />
-                          <span className="font-bold">+${balance.toFixed(2)}</span>
+                          <span className="font-bold">+₹{balance.toFixed(2)}</span>
                         </div>
                       ) : balance < -0.01 ? (
                         <div className="flex items-center gap-2 text-red-600">
                           <TrendingDown className="w-4 h-4" />
-                          <span className="font-bold">-${Math.abs(balance).toFixed(2)}</span>
+                          <span className="font-bold">-₹{Math.abs(balance).toFixed(2)}</span>
                         </div>
                       ) : (
-                        <span className="text-slate-400 font-semibold">$0.00</span>
+                        <span className="text-slate-400 font-semibold">₹0.00</span>
                       )}
                     </div>
                   ))}
@@ -152,7 +152,7 @@ const BalanceSummary = ({ groups, expenses, settlements }) => {
                           <span className="font-semibold">{settlement.to}</span>
                         </p>
                         <p className="text-lg font-bold text-amber-600 mt-1">
-                          ${settlement.amount}
+                          ₹{settlement.amount}
                         </p>
                       </div>
                     ))}
