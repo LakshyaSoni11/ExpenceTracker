@@ -5,11 +5,11 @@ export const handleAIChat = async (req, res) => {
   try {
     const { message, history } = req.body;
 
-    // 1. Initialize with the latest stable model string
+    if (!process.env.GEMINI_API_KEY) {
+      return res.status(503).json({ error: "AI is not configured (GEMINI_API_KEY missing)" });
+    }
+
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ 
-      model: "gemini-3-flash-preview" 
-    });
 
     //  Fetch Group Context (only the user's groups)
     const groups = await Group.find({ members: { $elemMatch: { user: req.user._id, status: "active" } } })
@@ -24,18 +24,42 @@ export const handleAIChat = async (req, res) => {
         parts: [{ text: h.parts[0].text }]
       }));
 
-    const chat = model.startChat({
-      history: cleanHistory,
-      systemInstruction: {
-        parts: [{ text: `You are ExpenseBuddy. The current user is ${req.user.name} (email: ${req.user.email}). Context: ${groupCtx}. 
+    // 4. Get a response, with a model fallback chain for transient capacity errors
+    let lastErr = null;
+    const modelsToTry = [
+      process.env.GEMINI_MODEL || "gemini-3.7-flash",
+      "gemini-3.6-flash",
+      "gemini-3.5-flash",
+      "gemini-3-flash-preview",
+    ];
+
+    for (const candidate of new Set(modelsToTry)) {
+      try {
+        const chat = genAI.getGenerativeModel({ model: candidate }).startChat({
+          history: cleanHistory,
+          systemInstruction: {
+            parts: [{ text: `You are ExpenseBuddy. The current user is ${req.user.name} (email: ${req.user.email}). Context: ${groupCtx}. 
         If adding expense, return ONLY JSON: {"type": "ACTION", "command": "ADD_EXPENSE", "params": {"amount": 50, "desc": "pizza", "group": "GroupName"}}.
         If creating group, return ONLY JSON: {"type": "ACTION", "command": "CREATE_GROUP", "params": {"name": "GroupName", "members": ["Name1"]}}.
         Do not use markdown backticks for JSON. Otherwise use plain text.` }]
+          }
+        });
+        const result = await chat.sendMessage(message);
+        const text = result.response.text();
+        if (text) {
+          return res.json({ response: text });
+        }
+      } catch (err) {
+        lastErr = err;
+        const msg = String(err.message || "");
+        console.error(`GEMINI ${candidate} failed:`, msg.slice(0, 150));
+        if (!/503|429|Resource has been exhausted|high demand|LOAD\s*/i.test(msg)) {
+          break;
+        }
       }
-    });
+    }
 
-    const result = await chat.sendMessage(message);
-    res.json({ response: result.response.text() });
+    throw lastErr || new Error("No Gemini model responded");
 
   } catch (error) {
     console.error("GEMINI BACKEND ERROR:", error.message);

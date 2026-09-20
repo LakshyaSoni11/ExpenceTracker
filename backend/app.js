@@ -17,4 +17,18 @@ app.use('/api', groupRoutes)
 app.use('/api', expenseRoutes)
 app.use('/api', aiRoutes)
 
+app.get('/api/health', (req, res) => {
+  res.json({
+    status: 'ok',
+    ai: {
+      configured: !!process.env.GEMINI_API_KEY,
+      model: process.env.GEMINI_MODEL || 'gemini-3.7-flash',
+    },
+    mailer: {
+      brevo: !!process.env.BREVO_API_KEY,
+      smtp: !!(process.env.SMTP_USER && process.env.SMTP_PASS),
+    },
+  });
+});
+
 export default app
