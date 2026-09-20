@@ -17,15 +17,13 @@ const issueVerification = async (user) => {
   user.verificationToken = token;
   user.verificationTokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
   await user.save();
-  try {
-    await sendVerificationEmail({
-      to: user.email,
-      name: user.name,
-      link: buildVerificationLink(token),
-    });
-  } catch (error) {
-    console.error("Failed to send verification email:", error);
-  }
+  sendVerificationEmail({
+    to: user.email,
+    name: user.name,
+    link: buildVerificationLink(token),
+  }).catch((error) => {
+    console.error("Failed to send verification email:", error.message);
+  });
 };
 
 export const register = async (req, res) => {
