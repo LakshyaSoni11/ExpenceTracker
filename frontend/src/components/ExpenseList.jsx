@@ -30,7 +30,7 @@ const ExpenseList = ({ expenses, groups, onDelete }) => {
 
   if (expenses.length === 0) {
     return (
-      <div className="bg-white rounded-xl p-12 text-center shadow-md border border-slate-200">
+      <div className="bg-white rounded-xl p-6 sm:p-12 text-center shadow-md border border-slate-200">
         <Receipt className="w-16 h-16 text-slate-300 mx-auto mb-4" />
         <h3 className="text-xl font-semibold text-slate-900 mb-2">No expenses yet</h3>
         <p className="text-slate-600">Add expenses to your groups to start tracking</p>
@@ -96,7 +96,7 @@ const ExpenseList = ({ expenses, groups, onDelete }) => {
                 <Button 
                   variant="ghost" 
                   size="sm"
-                  className="opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-50 hover:text-red-600 ml-4"
+                  className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity hover:bg-red-50 hover:text-red-600 ml-2 sm:ml-4 shrink-0"
                 >
                   <Trash2 className="w-4 h-4" />
                 </Button>

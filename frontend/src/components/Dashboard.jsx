@@ -11,6 +11,7 @@ import SettlementModal from './SettlementModal';
 import SettlementHistory from '@/components/SettlementHistory';
 import GroupModal from '@/components/GroupModal';
 import AIChatbot from '@/components/AIChatbot'; // Integrated AI Component
+import ExportReportButton from '@/components/ExportReportButton';
 import api from "@/api/axios";
 import { toast } from "sonner";
 
@@ -174,32 +175,32 @@ const Dashboard = () => {
   return (
     <div className="min-h-screen bg-slate-50 relative">
       <header className="bg-white border-b border-slate-200 sticky top-0 z-10 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 py-6 flex justify-between items-center">
-          <div className="flex items-center gap-3">
-            <div className="bg-gradient-to-br from-emerald-500 to-teal-600 p-3 rounded-xl shadow-lg text-white">
-              <Wallet size={28} />
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6 flex justify-between items-center gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="bg-gradient-to-br from-emerald-500 to-teal-600 p-2 sm:p-3 rounded-xl shadow-lg text-white shrink-0">
+              <Wallet size={24} className="w-6 h-6 sm:w-7 sm:h-7" />
             </div>
-            <h1 className="text-3xl font-bold text-slate-900">Expense Tracker</h1>
+            <h1 className="text-xl sm:text-3xl font-bold text-slate-900 truncate leading-tight">Expense Tracker</h1>
           </div>
-          <Button onClick={() => setShowGroupModal(true)} className="bg-emerald-600 text-white">
-            <Plus className="w-4 h-4 mr-2" /> New Group
+          <Button onClick={() => setShowGroupModal(true)} className="bg-emerald-600 text-white shrink-0 px-3 sm:px-4">
+            <Plus className="w-4 h-4 sm:mr-2" /> <span className="hidden sm:inline">New Group</span>
           </Button>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      <main className="max-w-7xl mx-auto px-3 sm:px-4 py-6 sm:py-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-8">
           <MetricCard title="Active Groups" value={groups.length} icon={<Users className="text-blue-600"/>} bgColor="bg-blue-100" delay={0.1} />
           <MetricCard title="Total Expenses" value={`₹${calculateTotalExpenses().toFixed(2)}`} icon={<Receipt className="text-emerald-600"/>} bgColor="bg-emerald-100" delay={0.2} />
           <MetricCard title="Settlements" value={settlements.length} icon={<TrendingUp className="text-amber-600"/>} bgColor="bg-amber-100" delay={0.3} />
         </div>
 
         <Tabs value={selectedTab} onValueChange={setSelectedTab}>
-          <TabsList className="grid w-full grid-cols-4 bg-white rounded-xl p-1 shadow-md border border-slate-200">
-            <TabsTrigger value="groups">Groups</TabsTrigger>
-            <TabsTrigger value="expenses">Expenses</TabsTrigger>
-            <TabsTrigger value="balances">Balances</TabsTrigger>
-            <TabsTrigger value="settlements">Settlements</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 bg-white rounded-xl p-1 shadow-md border border-slate-200">
+            <TabsTrigger value="groups" className="text-xs sm:text-sm px-1 sm:px-3">Groups</TabsTrigger>
+            <TabsTrigger value="expenses" className="text-xs sm:text-sm px-1 sm:px-3">Expenses</TabsTrigger>
+            <TabsTrigger value="balances" className="text-xs sm:text-sm px-1 sm:px-3">Balances</TabsTrigger>
+            <TabsTrigger value="settlements" className="text-xs sm:text-sm px-1 sm:px-3">Settlements</TabsTrigger>
           </TabsList>
 
           <TabsContent value="groups" className="mt-6">
@@ -225,6 +226,10 @@ const Dashboard = () => {
           
           {/* Other tab contents map to existing lists... */}
           <TabsContent value="expenses" className="mt-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg sm:text-xl font-semibold text-slate-900">All Expenses</h2>
+              <ExportReportButton expenses={expenses} groups={groups} settlements={settlements} />
+            </div>
             <ExpenseList expenses={expenses} groups={groups} onDelete={handleDeleteExpense} />
           </TabsContent>
 
@@ -254,19 +259,19 @@ const Dashboard = () => {
 };
 
 const MetricCard = ({ title, value, icon, bgColor, delay }) => (
-  <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay }} className="bg-white rounded-xl p-6 shadow-md border border-slate-200">
+  <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay }} className="bg-white rounded-xl p-4 sm:p-6 shadow-md border border-slate-200">
     <div className="flex items-center justify-between">
-      <div>
-        <p className="text-sm font-medium text-slate-600">{title}</p>
-        <p className="text-3xl font-bold text-slate-900 mt-2">{value}</p>
+      <div className="min-w-0">
+        <p className="text-xs sm:text-sm font-medium text-slate-600">{title}</p>
+        <p className="text-2xl sm:text-3xl font-bold text-slate-900 mt-2 break-all">{value}</p>
       </div>
-      <div className={`${bgColor} p-3 rounded-lg`}>{icon}</div>
+      <div className={`${bgColor} p-2 sm:p-3 rounded-lg shrink-0`}>{icon}</div>
     </div>
   </motion.div>
 );
 
 const EmptyState = ({ title, onAction }) => (
-  <div className="bg-white rounded-xl p-12 text-center shadow-md border border-slate-200">
+  <div className="bg-white rounded-xl p-6 sm:p-12 text-center shadow-md border border-slate-200">
     <Users className="w-16 h-16 text-slate-300 mx-auto mb-4" />
     <h3 className="text-xl font-semibold text-slate-900 mb-2">{title}</h3>
     <Button onClick={onAction} className="bg-emerald-600 text-white mt-4">

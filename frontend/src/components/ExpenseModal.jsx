@@ -63,7 +63,7 @@ const ExpenseModal = ({ isOpen, onClose, onSubmit, group }) => {
       splits = calculateExactSplit();
       const total = splits.reduce((sum, s) => sum + parseFloat(s.amount), 0);
       if (Math.abs(total - parseFloat(amount)) > 0.01) {
-        toast.error(`Total sum ($${total.toFixed(2)}) doesn't match amount ($${amount})`);
+        toast.error(`Total sum (₹${total.toFixed(2)}) doesn't match amount (₹${amount})`);
         return;
       }
     } else if (splitType === 'percent') {
@@ -91,11 +91,26 @@ const ExpenseModal = ({ isOpen, onClose, onSubmit, group }) => {
 
   if (!group) return null;
 
+  const totalAmount = parseFloat(amount) || 0;
+  const exactAssigned = Object.values(exactSplits).reduce((sum, value) => sum + (parseFloat(value) || 0), 0);
+  const exactRemaining = totalAmount - exactAssigned;
+  const exactBalanced = Math.abs(exactRemaining) < 0.01;
+
+  const totalPercent = Object.values(percentSplits).reduce((sum, value) => sum + (parseFloat(value) || 0), 0);
+  const percentRemaining = 100 - totalPercent;
+  const percentBalanced = Math.abs(percentRemaining) < 0.01;
+
+  const balanceTone = (balanced, over) =>
+    balanced ? 'text-emerald-600' : over < 0 ? 'text-red-600' : 'text-amber-600';
+
+  const progressTone = (balanced, over) =>
+    balanced ? 'bg-emerald-500' : over < 0 ? 'bg-red-500' : 'bg-amber-400';
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-150  max-h-[90vh] overflow-y-auto bg-gray-300">
+      <DialogContent className="sm:max-w-150 bg-gray-300">
         <DialogHeader>
-          <DialogTitle className="text-2xl font-bold text-slate-900">Add Expense to {group.name}</DialogTitle>
+          <DialogTitle className="text-xl sm:text-2xl font-bold text-slate-900">Add Expense to {group.name}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-6 mt-4">
           <div className="space-y-2">
@@ -168,7 +183,7 @@ const ExpenseModal = ({ isOpen, onClose, onSubmit, group }) => {
                 <div className="bg-emerald-50 p-4 rounded-lg border border-emerald-200">
                   <p className="text-sm text-slate-700">
                     The expense will be split equally among all {group.members.length} members.
-                    {amount && ` Each person pays $${(parseFloat(amount) / group.members.length).toFixed(2)}`}
+                    {amount && ` Each person pays ₹${(parseFloat(amount) / group.members.length).toFixed(2)}`}
                   </p>
                 </div>
               </TabsContent>
@@ -187,6 +202,26 @@ const ExpenseModal = ({ isOpen, onClose, onSubmit, group }) => {
                     />
                   </div>
                 ))}
+
+                {totalAmount > 0 && (
+                  <div className="mt-2 bg-slate-50 p-4 rounded-lg border border-slate-200">
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-sm text-slate-700">
+                        Allotted: <span className="font-semibold text-slate-900">₹{exactAssigned.toFixed(2)}</span>
+                        <span className="text-slate-500"> / ₹{totalAmount.toFixed(2)}</span>
+                      </p>
+                      <span className={`text-sm font-semibold ${balanceTone(exactBalanced, exactRemaining)}`}>
+                        ₹{Math.abs(exactRemaining).toFixed(2)} {exactRemaining >= 0 ? 'left' : 'over'}
+                      </span>
+                    </div>
+                    <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all duration-300 ${progressTone(exactBalanced, exactRemaining)}`}
+                        style={{ width: `${Math.min(100, (exactAssigned / totalAmount) * 100)}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
               </TabsContent>
 
               <TabsContent value="percent" className="mt-4 space-y-2">
@@ -204,6 +239,26 @@ const ExpenseModal = ({ isOpen, onClose, onSubmit, group }) => {
                     <span className="text-slate-600">%</span>
                   </div>
                 ))}
+
+                {totalAmount > 0 && (
+                  <div className="mt-2 bg-slate-50 p-4 rounded-lg border border-slate-200">
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-sm text-slate-700">
+                        Allocated: <span className="font-semibold text-slate-900">{totalPercent.toFixed(2)}%</span>
+                        <span className="text-slate-500"> / 100%</span>
+                      </p>
+                      <span className={`text-sm font-semibold ${balanceTone(percentBalanced, percentRemaining)}`}>
+                        {Math.abs(percentRemaining).toFixed(2)}% {percentRemaining >= 0 ? 'left' : 'over'}
+                      </span>
+                    </div>
+                    <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all duration-300 ${progressTone(percentBalanced, percentRemaining)}`}
+                        style={{ width: `${Math.min(100, totalPercent)}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
               </TabsContent>
             </Tabs>
           </div>

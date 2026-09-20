@@ -56,7 +56,7 @@ const GroupModal = ({ isOpen, onClose, onSubmit }) => {
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md bg-gray-300">
         <DialogHeader>
-          <DialogTitle className="text-2xl font-bold text-slate-900">Create New Group</DialogTitle>
+          <DialogTitle className="text-xl sm:text-2xl font-bold text-slate-900">Create New Group</DialogTitle>
           <DialogDescription>
             Add a group name and at least 2 members to get started
           </DialogDescription>

@@ -69,7 +69,7 @@ const BalanceSummary = ({ groups, expenses, settlements }) => {
 
   if (groups.length === 0) {
     return (
-      <div className="bg-white rounded-xl p-12 text-center shadow-md border border-slate-200">
+      <div className="bg-white rounded-xl p-6 sm:p-12 text-center shadow-md border border-slate-200">
         <Users className="w-16 h-16 text-slate-300 mx-auto mb-4" />
         <h3 className="text-xl font-semibold text-slate-900 mb-2">No groups yet</h3>
         <p className="text-slate-600">Create a group to see balance summaries</p>
@@ -92,18 +92,18 @@ const BalanceSummary = ({ groups, expenses, settlements }) => {
             transition={{ delay: groupIndex * 0.1 }}
             className="bg-white rounded-xl p-6 shadow-md border border-slate-200"
           >
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-3">
-                <div className="bg-gradient-to-br from-blue-500 to-indigo-600 p-3 rounded-lg">
-                  <Users className="w-6 h-6 text-white" />
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-6">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="bg-gradient-to-br from-blue-500 to-indigo-600 p-2 sm:p-3 rounded-lg shrink-0">
+                  <Users className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                 </div>
-                <div>
-                  <h3 className="text-xl font-bold text-slate-900">{group.name}</h3>
+                <div className="min-w-0">
+                  <h3 className="text-lg sm:text-xl font-bold text-slate-900 truncate">{group.name}</h3>
                   <p className="text-sm text-slate-600">{group.members.length} members</p>
                 </div>
               </div>
               {isBalanced && (
-                <div className="flex items-center gap-2 bg-emerald-100 px-4 py-2 rounded-full">
+                <div className="flex items-center gap-2 bg-emerald-100 px-4 py-2 rounded-full self-start sm:self-auto">
                   <CheckCircle className="w-5 h-5 text-emerald-600" />
                   <span className="text-sm font-semibold text-emerald-700">All Settled</span>
                 </div>
@@ -115,15 +115,15 @@ const BalanceSummary = ({ groups, expenses, settlements }) => {
                 <h4 className="text-sm font-semibold text-slate-700 mb-3">Member Balances</h4>
                 <div className="space-y-2">
                   {Object.entries(balances).map(([member, balance]) => (
-                    <div key={member} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
-                      <span className="font-medium text-slate-900">{member}</span>
+                    <div key={member} className="flex items-center justify-between gap-2 p-3 bg-slate-50 rounded-lg">
+                      <span className="font-medium text-slate-900 min-w-0 truncate">{member}</span>
                       {balance > 0.01 ? (
-                        <div className="flex items-center gap-2 text-emerald-600">
+                        <div className="flex items-center gap-2 text-emerald-600 shrink-0">
                           <TrendingUp className="w-4 h-4" />
                           <span className="font-bold">+₹{balance.toFixed(2)}</span>
                         </div>
                       ) : balance < -0.01 ? (
-                        <div className="flex items-center gap-2 text-red-600">
+                        <div className="flex items-center gap-2 text-red-600 shrink-0">
                           <TrendingDown className="w-4 h-4" />
                           <span className="font-bold">-₹{Math.abs(balance).toFixed(2)}</span>
                         </div>

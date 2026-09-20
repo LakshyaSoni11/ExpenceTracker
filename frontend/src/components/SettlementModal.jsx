@@ -83,13 +83,13 @@ const SettlementModal = ({ isOpen, onClose, onSubmit, group, expenses, settlemen
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-125 bg-gray-300">
         <DialogHeader>
-          <DialogTitle className="text-2xl font-bold text-slate-900">Settle Dues - {group.name}</DialogTitle>
+          <DialogTitle className="text-xl sm:text-2xl font-bold text-slate-900">Settle Dues - {group.name}</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6 mt-4">
           <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
             <h4 className="text-sm font-semibold text-emerald-500 mb-2">Current Balances</h4>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {Object.entries(balances).map(([member, balance]) => (
                 <div key={member} className="flex justify-between text-xs p-1 bg-white/50 rounded">
                   <span className="text-slate-700 font-medium">{member}</span>
@@ -138,7 +138,7 @@ const SettlementModal = ({ isOpen, onClose, onSubmit, group, expenses, settlemen
           </div>
 
           <div className="space-y-2">
-            <div className="flex justify-between">
+            <div className="flex justify-between items-center gap-2 flex-wrap">
               <Label htmlFor="amount" className="text-sm font-medium text-slate-700">
                 Amount
               </Label>

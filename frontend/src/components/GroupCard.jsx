@@ -94,11 +94,11 @@ const GroupCard = ({
         </AlertDialog>
       </div>
 
-      <div className="flex gap-2">
-        <Button onClick={() => onAddExpense(group)}>
+      <div className="flex flex-col sm:flex-row gap-2">
+        <Button onClick={() => onAddExpense(group)} className="flex-1 sm:flex-none justify-center">
           <Plus className="w-4 h-4 mr-1" /> Add Expense
         </Button>
-        <Button variant="outline" onClick={() => onSettle(group)}>
+        <Button variant="outline" onClick={() => onSettle(group)} className="flex-1 sm:flex-none justify-center">
           <IndianRupee className="w-4 h-4 mr-1" /> Settle
         </Button>
       </div>

@@ -91,9 +91,9 @@ const handleSend = async () => {
   };
 
   return (
-    <div className="fixed bottom-6 right-6 z-50">
+    <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50">
       {isOpen ? (
-        <div className="w-80 h-[450px] bg-white rounded-2xl shadow-2xl flex flex-col border border-slate-200 animate-in slide-in-from-bottom-5">
+        <div className="w-[calc(100vw-2rem)] max-w-80 sm:w-80 h-[70vh] max-h-[520px] sm:h-[450px] bg-white rounded-2xl shadow-2xl flex flex-col border border-slate-200 animate-in slide-in-from-bottom-5">
           <div className="p-4 bg-emerald-600 text-white rounded-t-2xl flex justify-between items-center">
             <span className="flex items-center gap-2 font-medium"><Bot size={20}/> ExpenseBuddy AI</span>
             <X className="cursor-pointer hover:rotate-90 transition-transform" onClick={() => setIsOpen(false)} />
