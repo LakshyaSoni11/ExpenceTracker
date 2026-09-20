@@ -20,3 +20,5 @@ yarn-debug.log*
 .DS_Store
 .vscode/
 .idea/
+.vercel
+.env*

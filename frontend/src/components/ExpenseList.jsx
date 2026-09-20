@@ -2,6 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Receipt, Calendar, User, IndianRupee, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { memberId, memberName, buildMemberNameMap } from '@/lib/members';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -15,10 +16,14 @@ import {
 } from '@/components/ui/alert-dialog';
 
 const ExpenseList = ({ expenses, groups, onDelete }) => {
+  const memberNames = buildMemberNameMap(groups);
+
   const getGroupName = (groupId) => {
     const group = groups.find(g => g.id === groupId);
     return group ? group.name : 'Unknown Group';
   };
+
+  const getMemberName = (id) => memberNames[id] || 'Unknown member';
 
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -69,7 +74,7 @@ const ExpenseList = ({ expenses, groups, onDelete }) => {
                 <div className="flex items-center gap-2 text-sm">
                   <User className="w-4 h-4 text-blue-600" />
                   <span className="text-slate-600">Paid by:</span>
-                  <span className="font-semibold text-slate-900">{expense.paidBy}</span>
+                  <span className="font-semibold text-slate-900">{getMemberName(memberId(expense.paidBy))}</span>
                 </div>
                 <div className="flex items-center gap-2 text-sm">
                   <Calendar className="w-4 h-4 text-amber-600" />
@@ -83,7 +88,7 @@ const ExpenseList = ({ expenses, groups, onDelete }) => {
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                   {expense.splits.map((split, idx) => (
                     <div key={idx} className="bg-slate-50 px-3 py-2 rounded-lg text-sm">
-                      <span className="text-slate-700">{split.member}:</span>
+                      <span className="text-slate-700">{getMemberName(memberId(split.member))}:</span>
                       <span className="font-semibold text-slate-900 ml-2">₹{parseFloat(split.amount).toFixed(2)}</span>
                     </div>
                   ))}

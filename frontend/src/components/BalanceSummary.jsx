@@ -1,30 +1,31 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { TrendingUp, TrendingDown, CheckCircle, Users } from 'lucide-react';
+import { memberId, memberName } from '@/lib/members';
 
 const BalanceSummary = ({ groups, expenses, settlements }) => {
   const calculateGroupBalances = (group) => {
     const balances = {};
-    group.members.forEach(member => {
-      balances[member] = 0;
+    group.members.filter((m) => m.membershipStatus === 'active').forEach(member => {
+      balances[memberId(member)] = 0;
     });
 
     const groupExpenses = expenses.filter(e => e.groupId === group.id);
     const groupSettlements = settlements.filter(s => s.groupId === group.id);
 
     groupExpenses.forEach(expense => {
-      const paidBy = expense.paidBy;
+      const paidBy = memberId(expense.paidBy);
       const amount = parseFloat(expense.amount);
       balances[paidBy] += amount;
 
       expense.splits.forEach(split => {
-        balances[split.member] -= parseFloat(split.amount);
+        balances[memberId(split.member)] -= parseFloat(split.amount);
       });
     });
 
     groupSettlements.forEach(settlement => {
-      balances[settlement.from] += parseFloat(settlement.amount);
-      balances[settlement.to] -= parseFloat(settlement.amount);
+      balances[memberId(settlement.from)] += parseFloat(settlement.amount);
+      balances[memberId(settlement.to)] -= parseFloat(settlement.amount);
     });
 
     return balances;
@@ -114,24 +115,27 @@ const BalanceSummary = ({ groups, expenses, settlements }) => {
               <div>
                 <h4 className="text-sm font-semibold text-slate-700 mb-3">Member Balances</h4>
                 <div className="space-y-2">
-                  {Object.entries(balances).map(([member, balance]) => (
-                    <div key={member} className="flex items-center justify-between gap-2 p-3 bg-slate-50 rounded-lg">
-                      <span className="font-medium text-slate-900 min-w-0 truncate">{member}</span>
-                      {balance > 0.01 ? (
-                        <div className="flex items-center gap-2 text-emerald-600 shrink-0">
-                          <TrendingUp className="w-4 h-4" />
-                          <span className="font-bold">+₹{balance.toFixed(2)}</span>
-                        </div>
-                      ) : balance < -0.01 ? (
-                        <div className="flex items-center gap-2 text-red-600 shrink-0">
-                          <TrendingDown className="w-4 h-4" />
-                          <span className="font-bold">-₹{Math.abs(balance).toFixed(2)}</span>
-                        </div>
-                      ) : (
-                        <span className="text-slate-400 font-semibold">₹0.00</span>
-                      )}
-                    </div>
-                  ))}
+                  {Object.entries(balances).map(([member, balance]) => {
+                    const name = group.members.find(m => memberId(m) === member);
+                    return (
+                      <div key={member} className="flex items-center justify-between gap-2 p-3 bg-slate-50 rounded-lg">
+                        <span className="font-medium text-slate-900 min-w-0 truncate">{memberName(name)}</span>
+                        {balance > 0.01 ? (
+                          <div className="flex items-center gap-2 text-emerald-600 shrink-0">
+                            <TrendingUp className="w-4 h-4" />
+                            <span className="font-bold">+₹{balance.toFixed(2)}</span>
+                          </div>
+                        ) : balance < -0.01 ? (
+                          <div className="flex items-center gap-2 text-red-600 shrink-0">
+                            <TrendingDown className="w-4 h-4" />
+                            <span className="font-bold">-₹{Math.abs(balance).toFixed(2)}</span>
+                          </div>
+                        ) : (
+                          <span className="text-slate-400 font-semibold">₹0.00</span>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -144,18 +148,22 @@ const BalanceSummary = ({ groups, expenses, settlements }) => {
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    {suggestedSettlements.map((settlement, idx) => (
-                      <div key={idx} className="p-3 bg-amber-50 rounded-lg border border-amber-200">
-                        <p className="text-sm text-slate-900">
-                          <span className="font-semibold">{settlement.from}</span>
-                          {' owes '}
-                          <span className="font-semibold">{settlement.to}</span>
-                        </p>
-                        <p className="text-lg font-bold text-amber-600 mt-1">
-                          ₹{settlement.amount}
-                        </p>
-                      </div>
-                    ))}
+                    {suggestedSettlements.map((settlement, idx) => {
+                      const from = group.members.find(m => memberId(m) === settlement.from);
+                      const to = group.members.find(m => memberId(m) === settlement.to);
+                      return (
+                        <div key={idx} className="p-3 bg-amber-50 rounded-lg border border-amber-200">
+                          <p className="text-sm text-slate-900">
+                            <span className="font-semibold">{memberName(from)}</span>
+                            {' owes '}
+                            <span className="font-semibold">{memberName(to)}</span>
+                          </p>
+                          <p className="text-lg font-bold text-amber-600 mt-1">
+                            ₹{settlement.amount}
+                          </p>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>

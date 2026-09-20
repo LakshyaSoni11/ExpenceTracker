@@ -1,8 +1,15 @@
 import mongoose from "mongoose";
 
 const splitSchema = new mongoose.Schema({
-  member: String,
-  amount: Number,
+  member: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+    required: true,
+  },
+  amount: {
+    type: Number,
+    required: true,
+  },
 });
 
 const expenseSchema = new mongoose.Schema(
@@ -18,12 +25,20 @@ const expenseSchema = new mongoose.Schema(
       required: true,
     },
     paidBy: {
-      type: String,
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
       required: true,
+    },
+    splitType: {
+      type: String,
+      enum: ["equal", "exact", "percent"],
+      default: "equal",
     },
     splits: [splitSchema],
   },
   { timestamps: true }
 );
+
+expenseSchema.index({ groupId: 1 });
 
 export default mongoose.model("Expense", expenseSchema);

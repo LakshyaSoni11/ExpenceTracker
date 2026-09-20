@@ -1,9 +1,22 @@
 import dotenv from 'dotenv'
+import { createServer } from 'http'
 import connectDB from './config/db.js'
+import migrate from './config/migrate.js'
 import app from './app.js'
+import { initRealtime } from './utils/realtime.js'
 
 dotenv.config()
-connectDB().catch((err) => console.error('DB connection error:', err.message))
 
 const PORT = process.env.PORT || 5000
-app.listen(PORT, () => console.log(`Server running in port ${PORT}`))
+
+connectDB()
+  .then(migrate)
+  .then(() => {
+    const server = createServer(app)
+    initRealtime(server)
+    server.listen(PORT, () => console.log(`Server running in port ${PORT}`))
+  })
+  .catch((err) => {
+    console.error('Startup error:', err.message)
+    process.exit(1)
+  })

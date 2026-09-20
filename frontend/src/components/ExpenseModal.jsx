@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { memberId, memberName } from '@/lib/members';
 import { toast } from 'sonner'; // Swapped from useToast
 
 const ExpenseModal = ({ isOpen, onClose, onSubmit, group }) => {
@@ -25,24 +26,25 @@ const ExpenseModal = ({ isOpen, onClose, onSubmit, group }) => {
 
   const calculateEqualSplit = () => {
     if (!group || !amount) return [];
-    const splitAmount = (parseFloat(amount) / group.members.length).toFixed(2);
-    return group.members.map(member => ({
-      member,
+    const active = group.members.filter((m) => m.membershipStatus === 'active');
+    const splitAmount = (parseFloat(amount) / active.length).toFixed(2);
+    return active.map(member => ({
+      member: memberId(member),
       amount: splitAmount
     }));
   };
 
   const calculateExactSplit = () => {
-    return Object.entries(exactSplits).map(([member, amt]) => ({
-      member,
+    return Object.entries(exactSplits).map(([memberIdKey, amt]) => ({
+      member: memberIdKey,
       amount: amt || '0'
     }));
   };
 
   const calculatePercentSplit = () => {
     if (!amount) return [];
-    return Object.entries(percentSplits).map(([member, percent]) => ({
-      member,
+    return Object.entries(percentSplits).map(([memberIdKey, percent]) => ({
+      member: memberIdKey,
       amount: ((parseFloat(amount) * (parseFloat(percent || 0) / 100))).toFixed(2)
     }));
   };
@@ -90,6 +92,8 @@ const ExpenseModal = ({ isOpen, onClose, onSubmit, group }) => {
   };
 
   if (!group) return null;
+
+  const activeMembers = group.members.filter((m) => m.membershipStatus === 'active');
 
   const totalAmount = parseFloat(amount) || 0;
   const exactAssigned = Object.values(exactSplits).reduce((sum, value) => sum + (parseFloat(value) || 0), 0);
@@ -154,8 +158,8 @@ const ExpenseModal = ({ isOpen, onClose, onSubmit, group }) => {
                 className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all bg-white"
               >
                 <option value="">Select member</option>
-                {group.members.map(member => (
-                  <option key={member} value={member}>{member}</option>
+                {activeMembers.map(member => (
+                  <option key={memberId(member)} value={memberId(member)}>{memberName(member)}</option>
                 ))}
               </select>
             </div>
@@ -182,21 +186,21 @@ const ExpenseModal = ({ isOpen, onClose, onSubmit, group }) => {
               <TabsContent value="equal" className="mt-4">
                 <div className="bg-emerald-50 p-4 rounded-lg border border-emerald-200">
                   <p className="text-sm text-slate-700">
-                    The expense will be split equally among all {group.members.length} members.
-                    {amount && ` Each person pays ₹${(parseFloat(amount) / group.members.length).toFixed(2)}`}
+                    The expense will be split equally among all {activeMembers.length} members.
+                    {amount && ` Each person pays ₹${(parseFloat(amount) / activeMembers.length).toFixed(2)}`}
                   </p>
                 </div>
               </TabsContent>
 
               <TabsContent value="exact" className="mt-4 space-y-2">
-                {group.members.map(member => (
-                  <div key={member} className="flex items-center gap-3">
-                    <Label className="w-32 text-sm">{member}</Label>
+                {activeMembers.map(member => (
+                  <div key={memberId(member)} className="flex items-center gap-3">
+                    <Label className="w-32 text-sm truncate">{memberName(member)}</Label>
                     <input
                       type="number"
                       step="0.01"
-                      value={exactSplits[member] || ''}
-                      onChange={(e) => setExactSplits({...exactSplits, [member]: e.target.value})}
+                      value={exactSplits[memberId(member)] || ''}
+                      onChange={(e) => setExactSplits({...exactSplits, [memberId(member)]: e.target.value})}
                       className="flex-1 px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all"
                       placeholder="0.00"
                     />
@@ -225,14 +229,14 @@ const ExpenseModal = ({ isOpen, onClose, onSubmit, group }) => {
               </TabsContent>
 
               <TabsContent value="percent" className="mt-4 space-y-2">
-                {group.members.map(member => (
-                  <div key={member} className="flex items-center gap-3">
-                    <Label className="w-32 text-sm">{member}</Label>
+                {activeMembers.map(member => (
+                  <div key={memberId(member)} className="flex items-center gap-3">
+                    <Label className="w-32 text-sm truncate">{memberName(member)}</Label>
                     <input
                       type="number"
                       step="0.01"
-                      value={percentSplits[member] || ''}
-                      onChange={(e) => setPercentSplits({...percentSplits, [member]: e.target.value})}
+                      value={percentSplits[memberId(member)] || ''}
+                      onChange={(e) => setPercentSplits({...percentSplits, [memberId(member)]: e.target.value})}
                       className="flex-1 px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all"
                       placeholder="0"
                     />

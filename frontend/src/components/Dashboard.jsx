@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Users, Plus, Receipt, DollarSign, TrendingUp, Wallet, Loader2 } from 'lucide-react';
+import { Users, Plus, Receipt, DollarSign, TrendingUp, Wallet, Loader2, LogOut, Mail, Check, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import GroupCard from '@/components/GroupCard';
@@ -14,11 +14,15 @@ import AIChatbot from '@/components/AIChatbot'; // Integrated AI Component
 import ExportReportButton from '@/components/ExportReportButton';
 import api from "@/api/axios";
 import { toast } from "sonner";
+import { useAuth } from '@/context/AuthContext';
+import socket from '@/lib/socket';
 
 const Dashboard = () => {
+  const { user, logout } = useAuth();
   const [groups, setGroups] = useState([]);
   const [expenses, setExpenses] = useState([]);
   const [settlements, setSettlements] = useState([]);
+  const [invites, setInvites] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedTab, setSelectedTab] = useState('groups');
   
@@ -29,22 +33,25 @@ const Dashboard = () => {
   const [selectedGroup, setSelectedGroup] = useState(null);
 
   // --- DATA FETCHING ---
-  const fetchData = async () => {
+  const fetchData = async (opts = {}) => {
     try {
-      setLoading(true);
-      const [groupsRes, expensesRes, settlementsRes] = await Promise.all([
+      if (!opts.silent) setLoading(true);
+      const [groupsRes, expensesRes, settlementsRes, invitesRes] = await Promise.all([
         api.get('/groups'),
         api.get('/expenses'),
-        api.get('/settlements')
+        api.get('/settlements'),
+        api.get('/groups/invites')
       ]);
       
       const transformedGroups = groupsRes.data.map(g => ({ ...g, id: g._id }));
       const transformedExpenses = expensesRes.data.map(e => ({ ...e, id: e._id }));
       const transformedSettlements = settlementsRes.data.map(s => ({ ...s, id: s._id }));
+      const transformedInvites = invitesRes.data.map(g => ({ ...g, id: g._id }));
       
       setGroups(transformedGroups);
       setExpenses(transformedExpenses);
       setSettlements(transformedSettlements);
+      setInvites(transformedInvites);
     } catch (error) {
       console.error("Data fetch error:", error);
       toast.error("Failed to load data. Make sure your backend is running.");
@@ -57,13 +64,90 @@ const Dashboard = () => {
     fetchData();
   }, []);
 
+  // --- REALTIME (Socket.IO) ---
+  useEffect(() => {
+    const refresh = () => fetchData({ silent: true });
+    const toastInvite = (data) => {
+      if (data.groupName) {
+        toast.info(`${data.invitedByName || 'Someone'} invited you to "${data.groupName}". Accept it in the Invites section.`, { duration: 6000 });
+      }
+      refresh();
+    };
+    const toastExpense = (data) => {
+      if (data.groupName && data.description) {
+        toast.success(`New expense in "${data.groupName}": ${data.description} — ₹${Number(data.amount).toFixed(2)}`);
+      }
+      refresh();
+    };
+    const toastSettlement = (data) => {
+      if (data.groupName) toast.success(`New settlement in "${data.groupName}"`);
+      refresh();
+    };
+    const quiet = () => refresh();
+
+    socket.on('invite:new', toastInvite);
+    socket.on('expense:added', toastExpense);
+    socket.on('expense:deleted', quiet);
+    socket.on('settlement:added', toastSettlement);
+    socket.on('group:created', quiet);
+    socket.on('group:member-changed', refresh);
+    socket.on('group:deleted', (data) => {
+      if (data.groupName) toast.info(`Group "${data.groupName}" was deleted`);
+      refresh();
+    });
+
+    return () => {
+      socket.off('invite:new', toastInvite);
+      socket.off('expense:added', toastExpense);
+      socket.off('expense:deleted', quiet);
+      socket.off('settlement:added', toastSettlement);
+      socket.off('group:created', quiet);
+      socket.off('group:member-changed', refresh);
+      socket.off('group:deleted');
+    };
+  }, []);
+
+  // --- INVITE HANDLERS ---
+  const handleAcceptInvite = async (invite) => {
+    try {
+      await api.post(`/groups/${invite.id}/invite/accept`);
+      toast.success(`You joined "${invite.name}"`);
+      await fetchData({ silent: true });
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to accept invite');
+    }
+  };
+
+  const handleDeclineInvite = async (invite) => {
+    try {
+      await api.post(`/groups/${invite.id}/invite/decline`);
+      toast.success(`Declined invite to "${invite.name}"`);
+      await fetchData({ silent: true });
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to decline invite');
+    }
+  };
+
   // --- AI AUTO-HANDLERS (Task Automation) ---
 
   const handleAutoCreateGroup = async (params) => {
-    // Logic to create a group directly from AI commands
+    // Resolve member names to registered user IDs (AI passes names)
+    const memberNames = (params.members && params.members.length) ? params.members : [];
+    const resolved = [];
+    for (const name of memberNames) {
+      try {
+        const res = await api.get('/users/search', { params: { q: name } });
+        const match = res.data.find(u => u.name.toLowerCase() === name.toLowerCase());
+        if (match) resolved.push(match._id);
+      } catch { /* ignore */ }
+    }
+    if (resolved.length === 0) {
+      toast.error(`No registered users found for "${memberNames.join('", "')}". Ask them to sign up first.`);
+      throw new Error("No registered users to add");
+    }
     await handleCreateGroup({
       name: params.name,
-      members: params.members || ["Owner", "Guest"]
+      members: resolved
     });
   };
 
@@ -75,18 +159,30 @@ const Dashboard = () => {
       throw new Error("Group not found");
     }
 
-    // Default to splitting equally among all members
-    const splitAmount = params.amount / targetGroup.members.length;
-    const splits = targetGroup.members.map(m => ({
-      member: m,
+    // Default to splitting equally among all active members (members are populated objects)
+    const active = targetGroup.members.filter((m) => m.membershipStatus === 'active');
+    const splitAmount = params.amount / active.length;
+    const splits = active.map(m => ({
+      member: m._id,
       amount: splitAmount
     }));
+
+    let paidBy;
+    if (params.paidBy) {
+      paidBy = active.find(m => m.name.toLowerCase() === params.paidBy.toLowerCase());
+      if (!paidBy) {
+        toast.error(`Member "${params.paidBy}" not found in group "${params.group}".`);
+        throw new Error("Member not found");
+      }
+    } else {
+      paidBy = active[0];
+    }
 
     await handleAddExpense({
       groupId: targetGroup.id,
       description: params.desc || "AI Generated Expense",
       amount: parseFloat(params.amount),
-      paidBy: params.paidBy || targetGroup.members[0],
+      paidBy: paidBy._id,
       splits: splits
     });
   };
@@ -182,9 +278,17 @@ const Dashboard = () => {
             </div>
             <h1 className="text-xl sm:text-3xl font-bold text-slate-900 truncate leading-tight">Expense Tracker</h1>
           </div>
-          <Button onClick={() => setShowGroupModal(true)} className="bg-emerald-600 text-white shrink-0 px-3 sm:px-4">
-            <Plus className="w-4 h-4 sm:mr-2" /> <span className="hidden sm:inline">New Group</span>
-          </Button>
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+            {user && (
+              <span className="hidden sm:inline-flex text-sm font-medium text-slate-700 px-3 py-1 bg-slate-100 rounded-full truncate max-w-[200px]">{user.name}</span>
+            )}
+            <Button onClick={() => setShowGroupModal(true)} className="bg-emerald-600 text-white shrink-0 px-3 sm:px-4">
+              <Plus className="w-4 h-4 sm:mr-2" /> <span className="hidden sm:inline">New Group</span>
+            </Button>
+            <Button variant="ghost" size="icon" onClick={logout} title="Logout" className="shrink-0 hover:bg-red-50 hover:text-red-600" aria-label="Logout">
+              <LogOut className="w-5 h-5" />
+            </Button>
+          </div>
         </div>
       </header>
 
@@ -194,6 +298,36 @@ const Dashboard = () => {
           <MetricCard title="Total Expenses" value={`₹${calculateTotalExpenses().toFixed(2)}`} icon={<Receipt className="text-emerald-600"/>} bgColor="bg-emerald-100" delay={0.2} />
           <MetricCard title="Settlements" value={settlements.length} icon={<TrendingUp className="text-amber-600"/>} bgColor="bg-amber-100" delay={0.3} />
         </div>
+
+        {invites.length > 0 && (
+          <div className="mb-8 bg-amber-50 border border-amber-200 rounded-xl p-4 sm:p-5">
+            <div className="flex items-center gap-2 mb-3">
+              <Mail className="w-4 h-4 text-amber-600" />
+              <h2 className="font-semibold text-slate-900">Pending Invitations ({invites.length})</h2>
+            </div>
+            <div className="space-y-2">
+              {invites.map((invite) => (
+                <div key={invite.id} className="flex flex-col sm:flex-row sm:items-center gap-3 bg-white rounded-lg border border-amber-200 p-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-slate-900 truncate">{invite.name}</p>
+                    <p className="text-sm text-slate-600 truncate">
+                      Invited by {invite.invite?.invitedBy || 'a member'}
+                      {invite.invite?.invitedAt ? ` · ${new Date(invite.invite.invitedAt).toLocaleDateString()}` : ''}
+                    </p>
+                  </div>
+                  <div className="flex gap-2 shrink-0">
+                    <Button size="sm" onClick={() => handleAcceptInvite(invite)} className="bg-emerald-600 hover:bg-emerald-700">
+                      <Check className="w-4 h-4 mr-1" /> Accept
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => handleDeclineInvite(invite)} className="hover:bg-red-50 hover:text-red-600 hover:border-red-300">
+                      <X className="w-4 h-4 mr-1" /> Decline
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         <Tabs value={selectedTab} onValueChange={setSelectedTab}>
           <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 bg-white rounded-xl p-1 shadow-md border border-slate-200">

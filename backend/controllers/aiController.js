@@ -11,9 +11,10 @@ export const handleAIChat = async (req, res) => {
       model: "gemini-3.6-flash" 
     });
 
-    //  Fetch Group Context
-    const groups = await Group.find();
-    const groupCtx = groups.map(g => `- ${g.name} (Members: ${g.members.join(",")})`).join("\n");
+    //  Fetch Group Context (only the user's groups)
+    const groups = await Group.find({ members: { $elemMatch: { user: req.user._id, status: "active" } } })
+      .populate("members.user", "name");
+    const groupCtx = groups.map(g => `- ${g.name} (Members: ${g.members.map(m => m.user?.name || "…").join(",")})`).join("\n");
 
     //  Clean History for Gemini (Ensures User -> Model order)
     const cleanHistory = (history || [])
@@ -26,7 +27,7 @@ export const handleAIChat = async (req, res) => {
     const chat = model.startChat({
       history: cleanHistory,
       systemInstruction: {
-        parts: [{ text: `You are ExpenseBuddy. Context: ${groupCtx}. 
+        parts: [{ text: `You are ExpenseBuddy. The current user is ${req.user.name} (email: ${req.user.email}). Context: ${groupCtx}. 
         If adding expense, return ONLY JSON: {"type": "ACTION", "command": "ADD_EXPENSE", "params": {"amount": 50, "desc": "pizza", "group": "GroupName"}}.
         If creating group, return ONLY JSON: {"type": "ACTION", "command": "CREATE_GROUP", "params": {"name": "GroupName", "members": ["Name1"]}}.
         Do not use markdown backticks for JSON. Otherwise use plain text.` }]

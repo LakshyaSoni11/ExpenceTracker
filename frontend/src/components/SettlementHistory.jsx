@@ -1,12 +1,17 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { CheckCircle, Calendar, ArrowRight } from 'lucide-react';
+import { memberId, memberName, buildMemberNameMap } from '@/lib/members';
 
 const SettlementHistory = ({ settlements, groups }) => {
+  const memberNames = buildMemberNameMap(groups);
+
   const getGroupName = (groupId) => {
     const group = groups.find(g => g.id === groupId);
     return group ? group.name : 'Unknown Group';
   };
+
+  const getMemberName = (id) => memberNames[memberId(id)] || 'Unknown member';
 
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -58,12 +63,12 @@ const SettlementHistory = ({ settlements, groups }) => {
             <div className="flex items-center gap-3 sm:gap-4 flex-wrap">
               <div className="min-w-0">
                 <p className="text-xs sm:text-sm text-slate-600 mb-1">From</p>
-                <p className="font-bold text-slate-900 text-base sm:text-lg truncate max-w-[40vw] sm:max-w-none">{settlement.from}</p>
+                <p className="font-bold text-slate-900 text-base sm:text-lg truncate max-w-[40vw] sm:max-w-none">{getMemberName(settlement.from)}</p>
               </div>
               <ArrowRight className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-600 shrink-0" />
               <div className="min-w-0">
                 <p className="text-xs sm:text-sm text-slate-600 mb-1">To</p>
-                <p className="font-bold text-slate-900 text-base sm:text-lg truncate max-w-[40vw] sm:max-w-none">{settlement.to}</p>
+                <p className="font-bold text-slate-900 text-base sm:text-lg truncate max-w-[40vw] sm:max-w-none">{getMemberName(settlement.to)}</p>
               </div>
             </div>
             <div className="text-left sm:text-right">

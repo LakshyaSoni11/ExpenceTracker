@@ -1,5 +1,29 @@
 import mongoose from "mongoose";
 
+const memberSchema = new mongoose.Schema(
+  {
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+    status: {
+      type: String,
+      enum: ["invited", "active", "declined"],
+      default: "invited",
+    },
+    addedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+    },
+    invitedAt: {
+      type: Date,
+      default: Date.now,
+    },
+  },
+  { _id: false }
+);
+
 const groupSchema = new mongoose.Schema(
   {
     name: {
@@ -7,13 +31,21 @@ const groupSchema = new mongoose.Schema(
       required: true,
       trim: true,
     },
-    members: {
-      type: [String],
+    createdBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
       required: true,
-      validate: v => v.length >= 2,
+    },
+    members: {
+      type: [memberSchema],
+      required: true,
+      default: [],
     },
   },
   { timestamps: true }
 );
+
+groupSchema.index({ createdBy: 1 });
+groupSchema.index({ "members.user": 1 });
 
 export default mongoose.model("Group", groupSchema);

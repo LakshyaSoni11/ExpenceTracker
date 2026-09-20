@@ -25,15 +25,28 @@ const getGroupName = (groupId, groups) => {
   return group ? group.name : "Unknown Group";
 };
 
-const getSplitDetails = (expense) => {
-  if (!expense.splits || expense.splits.length === 0) return "";
-  return expense.splits.map((s) => `${s.member}: ${formatINR(s.amount)}`).join(" | ");
+const buildMemberNameMap = (groups) => {
+  const map = {};
+  (groups || []).forEach((g) =>
+    (g.members || []).forEach((m) => {
+      const id = typeof m === "string" ? m : m?._id;
+      if (id) map[id] = typeof m === "string" ? m : m.name || m.email || id;
+    })
+  );
+  return map;
 };
 
-const getPayerTotals = (expenses) => {
+const getSplitDetails = (expense, memberNames) => {
+  if (!expense.splits || expense.splits.length === 0) return "";
+  return expense.splits
+    .map((s) => `${memberNames[s.member] || s.member}: ${formatINR(s.amount)}`)
+    .join(" | ");
+};
+
+const getPayerTotals = (expenses, memberNames) => {
   const totals = {};
   expenses.forEach((expense) => {
-    const payer = expense.paidBy || "Unknown";
+    const payer = memberNames[expense.paidBy] || expense.paidBy || "Unknown";
     totals[payer] = (totals[payer] || 0) + (Number(expense.amount) || 0);
   });
   return Object.entries(totals).sort((a, b) => b[1] - a[1]);
@@ -50,6 +63,7 @@ const escapeCsvCell = (value) => {
 const toCsvRow = (cells) => cells.map(escapeCsvCell).join(",");
 
 export const downloadExpenseCSV = ({ expenses, groups, settlements }) => {
+  const memberNames = buildMemberNameMap(groups);
   const lines = [];
 
   lines.push("EXPENSE REPORT — ExpenceTracker");
@@ -86,9 +100,9 @@ export const downloadExpenseCSV = ({ expenses, groups, settlements }) => {
         getGroupName(expense.groupId, groups),
         expense.description || "",
         formatINR(expense.amount),
-        expense.paidBy || "",
+        memberNames[expense.paidBy] || expense.paidBy || "",
         expense.splitType || "",
-        getSplitDetails(expense),
+        getSplitDetails(expense, memberNames),
       ])
     );
   });
@@ -96,7 +110,7 @@ export const downloadExpenseCSV = ({ expenses, groups, settlements }) => {
 
   lines.push("PAYMENTS BY MEMBER");
   lines.push(toCsvRow(["Member", "Total Paid"]));
-  getPayerTotals(expenses).forEach(([member, total]) => {
+  getPayerTotals(expenses, memberNames).forEach(([member, total]) => {
     lines.push(toCsvRow([member, formatINR(total)]));
   });
   lines.push("");
@@ -108,8 +122,8 @@ export const downloadExpenseCSV = ({ expenses, groups, settlements }) => {
       toCsvRow([
         formatDate(settlement.createdAt),
         getGroupName(settlement.groupId, groups),
-        settlement.from || "",
-        settlement.to || "",
+        memberNames[settlement.from] || settlement.from || "",
+        memberNames[settlement.to] || settlement.to || "",
         formatINR(settlement.amount),
       ])
     );
@@ -130,6 +144,7 @@ export const downloadExpenseCSV = ({ expenses, groups, settlements }) => {
 };
 
 export const downloadExpensePDF = ({ expenses, groups, settlements }) => {
+  const memberNames = buildMemberNameMap(groups);
   const doc = new jsPDF({ unit: "pt", format: "a4" });
   const pageWidth = doc.internal.pageSize.getWidth();
   const margin = 40;
@@ -214,7 +229,7 @@ export const downloadExpensePDF = ({ expenses, groups, settlements }) => {
       formatDate(expense.createdAt),
       getGroupName(expense.groupId, groups),
       expense.description || "",
-      expense.paidBy || "",
+      memberNames[expense.paidBy] || expense.paidBy || "",
       expense.splitType || "",
       formatINR(expense.amount),
     ]),
@@ -242,7 +257,7 @@ export const downloadExpensePDF = ({ expenses, groups, settlements }) => {
   autoTable(doc, {
     startY: tableY + 24,
     head: [["Split Details (who owes what)"]],
-    body: expenses.map((expense) => [getSplitDetails(expense)]),
+    body: expenses.map((expense) => [getSplitDetails(expense, memberNames)]),
     theme: "grid",
     styles: { fontSize: 8, cellPadding: 5 },
     headStyles: {
@@ -264,7 +279,7 @@ export const downloadExpensePDF = ({ expenses, groups, settlements }) => {
   autoTable(doc, {
     startY: tableY + 24,
     head: [["Payments by Member", "Total Paid (Rs.)"]],
-    body: getPayerTotals(expenses).map(([member, total]) => [
+    body: getPayerTotals(expenses, memberNames).map(([member, total]) => [
       member,
       formatINR(total),
     ]),
@@ -280,7 +295,7 @@ export const downloadExpensePDF = ({ expenses, groups, settlements }) => {
   });
   tableY = doc.lastAutoTable.finalY;
 
-  if (getPayerTotals(expenses).length === 0) {
+  if (getPayerTotals(expenses, memberNames).length === 0) {
     doc.setFontSize(9);
     doc.setTextColor(100, 116, 139);
     doc.text("No payments recorded yet.", margin, tableY + 16);
@@ -293,8 +308,8 @@ export const downloadExpensePDF = ({ expenses, groups, settlements }) => {
     body: settlements.map((settlement) => [
       formatDate(settlement.createdAt),
       getGroupName(settlement.groupId, groups),
-      settlement.from || "",
-      settlement.to || "",
+      memberNames[settlement.from] || settlement.from || "",
+      memberNames[settlement.to] || settlement.to || "",
       formatINR(settlement.amount),
     ]),
     theme: "grid",

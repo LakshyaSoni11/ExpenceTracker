@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner'; // Swapped from use-toast
+import { memberId, memberName } from '@/lib/members';
 
 const SettlementModal = ({ isOpen, onClose, onSubmit, group, expenses, settlements }) => {
   const [from, setFrom] = useState('');
@@ -19,29 +20,34 @@ const SettlementModal = ({ isOpen, onClose, onSubmit, group, expenses, settlemen
     if (!group) return {};
     
     const balances = {};
-    group.members.forEach(member => {
-      balances[member] = 0;
+    group.members.filter((m) => m.membershipStatus === 'active').forEach(member => {
+      balances[memberId(member)] = 0;
     });
 
     const groupExpenses = expenses.filter(e => e.groupId === group.id);
     const groupSettlements = settlements.filter(s => s.groupId === group.id);
 
     groupExpenses.forEach(expense => {
-      const paidBy = expense.paidBy;
+      const paidBy = memberId(expense.paidBy);
       const expenseAmount = parseFloat(expense.amount);
       balances[paidBy] += expenseAmount;
 
       expense.splits.forEach(split => {
-        balances[split.member] -= parseFloat(split.amount);
+        balances[memberId(split.member)] -= parseFloat(split.amount);
       });
     });
 
     groupSettlements.forEach(settlement => {
-      balances[settlement.from] += parseFloat(settlement.amount);
-      balances[settlement.to] -= parseFloat(settlement.amount);
+      balances[memberId(settlement.from)] += parseFloat(settlement.amount);
+      balances[memberId(settlement.to)] -= parseFloat(settlement.amount);
     });
 
     return balances;
+  };
+
+  const getMemberName = (id) => {
+    const m = (group.members || []).find(member => memberId(member) === id);
+    return memberName(m);
   };
 
   const handleSubmit = (e) => {
@@ -70,12 +76,14 @@ const SettlementModal = ({ isOpen, onClose, onSubmit, group, expenses, settlemen
       amount: parseFloat(amount)
     });
 
-    toast.success(`Settlement recorded: ${from} paid ${to}`);
+    toast.success(`Settlement recorded: ${getMemberName(from)} paid ${getMemberName(to)}`);
     resetForm();
     onClose();
   };
 
   if (!group) return null;
+
+  const activeMembers = group.members.filter((m) => m.membershipStatus === 'active');
 
   const balances = calculateBalances();
 
@@ -90,9 +98,9 @@ const SettlementModal = ({ isOpen, onClose, onSubmit, group, expenses, settlemen
           <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
             <h4 className="text-sm font-semibold text-emerald-500 mb-2">Current Balances</h4>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              {Object.entries(balances).map(([member, balance]) => (
-                <div key={member} className="flex justify-between text-xs p-1 bg-white/50 rounded">
-                  <span className="text-slate-700 font-medium">{member}</span>
+              {Object.entries(balances).map(([memberIdKey, balance]) => (
+                <div key={memberIdKey} className="flex justify-between text-xs p-1 bg-white/50 rounded">
+                  <span className="text-slate-700 font-medium">{getMemberName(memberIdKey)}</span>
                   <span className={`font-bold ${balance > 0 ? 'text-emerald-600' : balance < 0 ? 'text-red-600' : 'text-slate-400'}`}>
                     {balance > 0 ? '+' : ''}{balance.toFixed(2)}
                   </span>
@@ -113,8 +121,8 @@ const SettlementModal = ({ isOpen, onClose, onSubmit, group, expenses, settlemen
                 className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none transition-all bg-white"
               >
                 <option value="">Select</option>
-                {group.members.map(member => (
-                  <option key={member} value={member}>{member}</option>
+                {activeMembers.map(member => (
+                  <option key={memberId(member)} value={memberId(member)}>{memberName(member)}</option>
                 ))}
               </select>
             </div>
@@ -130,8 +138,8 @@ const SettlementModal = ({ isOpen, onClose, onSubmit, group, expenses, settlemen
                 className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none transition-all bg-white"
               >
                 <option value="">Select</option>
-                {group.members.map(member => (
-                  <option key={member} value={member}>{member}</option>
+                {activeMembers.map(member => (
+                  <option key={memberId(member)} value={memberId(member)}>{memberName(member)}</option>
                 ))}
               </select>
             </div>

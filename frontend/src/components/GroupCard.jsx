@@ -4,6 +4,7 @@ import { Users, Plus, IndianRupee, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import api from "@/api/axios";
 import { toast } from "sonner";
+import { memberId, memberName } from "@/lib/members";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,22 +27,24 @@ const GroupCard = ({
 }) => {
   const calculateBalances = () => {
     const balances = {};
-    group.members.forEach((m) => (balances[m] = 0));
+    group.members.filter((m) => m.membershipStatus === 'active').forEach((m) => (balances[memberId(m)] = 0));
 
     expenses.forEach((e) => {
-      balances[e.paidBy] += e.amount;
+      balances[memberId(e.paidBy)] += e.amount;
       e.splits.forEach((s) => {
-        balances[s.member] -= s.amount;
+        balances[memberId(s.member)] -= s.amount;
       });
     });
 
     settlements.forEach((s) => {
-      balances[s.from] += s.amount;
-      balances[s.to] -= s.amount;
+      balances[memberId(s.from)] += s.amount;
+      balances[memberId(s.to)] -= s.amount;
     });
 
     return balances;
   };
+
+  const pendingCount = group.members.filter((m) => m.membershipStatus === 'invited').length;
 
   const balances = calculateBalances();
   const isBalanced = Object.values(balances).every(
@@ -66,11 +69,16 @@ const GroupCard = ({
       className="bg-white p-6 rounded-xl shadow"
     >
       <div className="flex justify-between mb-4">
-        <div className="flex items-center gap-3">
-          <Users />
-          <div>
-            <h3 className="font-semibold">{group.name}</h3>
-            <p className="text-sm">{group.members.length} members</p>
+        <div className="flex items-center gap-3 min-w-0">
+          <Users className="shrink-0" />
+          <div className="min-w-0">
+            <h3 className="font-semibold truncate">{group.name}</h3>
+            <p className="text-sm">
+              {group.members.length} members: {group.members.map(m => memberName(m) + (m.membershipStatus === 'invited' ? ' (pending)' : '')).join(", ")}
+            </p>
+            {pendingCount > 0 && (
+              <span className="inline-block mt-1 text-xs font-medium text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full">{pendingCount} invite pending</span>
+            )}
           </div>
         </div>
 
