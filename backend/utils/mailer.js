@@ -18,6 +18,12 @@ const transporter =
       })
     : null;
 
+if (transporter) {
+  console.log(`[mailer] SMTP ready -> ${smtpHost}:${smtpPort} as ${smtpUser}`);
+} else {
+  console.log(`[mailer] SMTP NOT configured (missing SMTP_USER/PASS); will log links to console instead`);
+}
+
 const from = process.env.EMAIL_FROM || (smtpUser ? `Expense Tracker <${smtpUser}>` : "Expense Tracker");
 
 const clientUrl = () =>
