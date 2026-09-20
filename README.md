@@ -216,71 +216,62 @@ Base URL: `http://localhost:5000/api` (locally)
 
 ---
 
-## 🚀 Deployment on Vercel
+## 🚀 Deployment
 
-The repo is pre-configured as a **monorepo** for a **single-project** Vercel deployment — one domain serves both the React frontend **and** the Express API via serverless functions. All routing is handled by [`vercel.json`](./vercel.json).
+This project deploys as **two separate apps**:
 
-### Option A — Dashboard (recommended)
+- **Frontend (React)** → **Vercel** — static build of [`frontend/`](./frontend) via [`frontend/vercel.json`](./frontend/vercel.json)
+- **Backend (Express API)** → **Render** — web service from [`backend/`](./backend) via [`render.yaml`](./render.yaml)
 
-1. **Push the code to GitHub** (see [Security & hygiene](#security--hygiene) below first).
-2. Go to [vercel.com](https://vercel.com) → **Add New…** → **Project**.
-3. **Import** your `ExpenceTracker` repository.
-4. Configure the project:
-   - **Framework Preset:** `Other`
-   - **Root Directory:** `./` *(the repo root — where `vercel.json` lives)*
-   - Leave the build settings as-is — they are already defined in [`vercel.json`](./vercel.json).
-5. Under **Environment Variables**, add:
+In production the frontend calls the backend through the `VITE_API_URL` environment variable (falls back to `/api` in dev).
+
+### 1. Deploy the backend to Render
+
+1. Push the code to GitHub.
+2. Go to [render.com](https://render.com) → **New** → **Blueprint** and connect the `ExpenceTracker` repo. The [`render.yaml`](./render.yaml) auto-configures the service.
+   - Or create a **New → Web Service** manually: Root Directory = `backend`, Build Command = `npm install`, Start Command = `npm start`.
+3. In the service's **Environment** tab, set:
 
    | Name | Value |
    |---|---|
+   | `PORT` | `5000` |
    | `MONGO_URI` | Your MongoDB Atlas connection string |
    | `GEMINI_API_KEY` | Your Google Gemini API key |
-   | `VITE_API_URL` | `/api` *(optional — defaults to `/api` in production)* |
 
-6. Click **Deploy**.
+4. Copy the service URL, e.g. `https://expense-tracker-backend.onrender.com`.
 
-That's it. After the build finishes you'll get a URL like `https://expence-tracker.vercel.app`. The frontend is served from that origin and `/api/*` requests are forwarded to the Express function automatically.
+**Verify:** open `https://expense-tracker-backend.onrender.com/api/groups` — it should return `[]` (or your groups).
 
-### Option B — Vercel CLI
+### 2. Deploy the frontend to Vercel
 
-```bash
-npm i -g vercel
+1. Go to [vercel.com](https://vercel.com) → **Add New…** → **Project** → import `ExpenceTracker`.
+2. Configure the project:
+   - **Framework Preset:** `Vite`
+   - **Root Directory:** `frontend` *(important — this is where [`frontend/vercel.json`](./frontend/vercel.json) lives; the repo root has no Vercel config anymore)*
+3. Under **Environment Variables**, add:
 
-# one-time login & link
-vercel login
-vercel link
+   | Name | Value |
+   |---|---|
+   | `VITE_API_URL` | `https://expense-tracker-backend.onrender.com/api` *(your Render backend URL + `/api`)* |
 
-# deploy preview
-vercel
+   > `VITE_API_URL` is required in production — without it the app calls the same-origin `/api`, which doesn't exist on Vercel.
 
-# deploy to production
-vercel --prod
-```
+4. Click **Deploy**.
 
-Add the environment variables the same way (`vercel env add MONGO_URI`).
+### How the routing works (frontend/vercel.json)
 
-### Verify the deployment
-
-- Open the deployed URL → the dashboard should load.
-- `GET https://<your-app>.vercel.app/api/groups` → should return `[]` (or your groups).
-
-### How requests are routed (vercel.json)
-
-```jsonc
+```json
 {
-  "framework": null,                              // skip framework auto-detection
-  "installCommand": "npm --prefix backend install --omit=dev && npm --prefix frontend install",
-  "buildCommand": "npm --prefix frontend run build",
-  "outputDirectory": "frontend/dist",             // serve the Vite build
-  "functions": { "api/index.js": { "maxDuration": 60 } }, // allow longer AI calls
+  "framework": "vite",
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/index.js" }, // API → Express
-    { "source": "/(.*)", "destination": "/index.html" }        // SPA fallback
+    { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
 ```
 
-`api/index.js` re-exports the Express `app` from the backend as a serverless function, so no separate server is needed.
+The SPA is served from the Vercel domain; the Axios instance (`frontend/src/api/axios.js`) reads `VITE_API_URL` at build time and points all API calls at the Render backend. The backend enables CORS for all origins, so cross-domain requests work out of the box.
 
 ### Security & hygiene ⚠️
 
@@ -302,23 +293,22 @@ Add the environment variables the same way (`vercel env add MONGO_URI`).
 
 ```
 ExpenceTracker/
-├── api/                      # Vercel serverless entry (Express app)
-│   └── index.js
-├── backend/                  # Express REST API
+├── backend/                  # Express REST API (deploys to Render)
 │   ├── config/
 │   │   └── db.js             # Mongoose connection
 │   ├── controllers/          # Route handlers (groups, expenses, AI)
 │   ├── models/               # Mongoose models (Group, Expense, Settlement, User)
 │   ├── routes/               # Express routers
-│   ├── app.js                # Express app (shared by dev + serverless)
-│   ├── index.js              # Dev server entry (app.listen)
+│   ├── app.js                # Express app
+│   ├── index.js              # Server entry (app.listen)
 │   └── .env.example
-├── frontend/                 # React + Vite + Tailwind app
+├── frontend/                 # React + Vite + Tailwind app (deploys to Vercel)
+│   ├── vercel.json           # Vercel config
 │   └── src/
-│       ├── api/              # Axios instance
+│       ├── api/              # Axios instance (uses VITE_API_URL)
 │       ├── components/       # UI components (Dashboard, modals, AI chat …)
 │       └── lib/              # Utilities & shadcn/ui helpers
-├── vercel.json               # Monorepo deployment config
+├── render.yaml               # Render Blueprint (backend web service)
 ├── .gitignore
 └── package.json
 ```
