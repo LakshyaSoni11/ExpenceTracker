@@ -1,6 +1,6 @@
 import Group from "../models/Group.js";
 import Expense from "../models/Expense.js";
-import settlement from "../models/settlement.js";
+import settlement from "../models/Settlement.js";
 
 //create group
 export const createGroup = async (req, res) => {

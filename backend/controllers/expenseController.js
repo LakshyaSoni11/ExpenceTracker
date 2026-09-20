@@ -1,4 +1,4 @@
-import Settlement from "../models/settlement.js";
+import Settlement from "../models/Settlement.js";
 import Expense from "../models/Expense.js";
 
 // Add expense
