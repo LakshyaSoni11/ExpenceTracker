@@ -1,5 +1,6 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import Group from "../models/Group.js";
+import User from "../models/User.js";
 
 export const handleAIChat = async (req, res) => {
   try {
@@ -15,6 +16,13 @@ export const handleAIChat = async (req, res) => {
     const groups = await Group.find({ members: { $elemMatch: { user: req.user._id, status: "active" } } })
       .populate("members.user", "name");
     const groupCtx = groups.map(g => `- ${g.name} (Members: ${g.members.map(m => m.user?.name || "…").join(",")})`).join("\n");
+
+    //  Registered users the current user may add to a group (excludes self)
+    const registered = await User.find({ _id: { $ne: req.user._id } })
+      .select("name email")
+      .limit(50);
+    const userList = registered.map(u => u.name).join(", ");
+    const userCtx = userList ? `Registered users available to add to groups: [${userList}]` : "No other registered users yet.";
 
     //  Clean History for Gemini (Ensures User -> Model order)
     const cleanHistory = (history || [])
@@ -38,9 +46,10 @@ export const handleAIChat = async (req, res) => {
         const chat = genAI.getGenerativeModel({ model: candidate }).startChat({
           history: cleanHistory,
           systemInstruction: {
-            parts: [{ text: `You are ExpenseBuddy. The current user is ${req.user.name} (email: ${req.user.email}). Context: ${groupCtx}. 
+            parts: [{ text: `You are ExpenseBuddy. The current user is ${req.user.name} (email: ${req.user.email}). Context: ${groupCtx}. ${userCtx}.
         If adding expense, return ONLY JSON: {"type": "ACTION", "command": "ADD_EXPENSE", "params": {"amount": 50, "desc": "pizza", "group": "GroupName"}}.
         If creating group, return ONLY JSON: {"type": "ACTION", "command": "CREATE_GROUP", "params": {"name": "GroupName", "members": ["Name1"]}}.
+        For CREATE_GROUP, members MUST be names from the Registered users list above (exact names). Do NOT invent or guess member names. The group creator is added automatically, never include the current user's own name. If the user wants to add someone not in the list, respond in plain text that that person must sign up first.
         Do not use markdown backticks for JSON. Otherwise use plain text.` }]
           }
         });

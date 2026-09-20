@@ -49,10 +49,10 @@ const handleSend = async () => {
         try {
           const action = JSON.parse(botText);
           if (action.type === "ACTION") {
-            await executeTask(action);
+            const ok = await executeTask(action);
             setMessages(prev => [
               ...prev, 
-              { role: "model", parts: [{ text: ` I've successfully performed that task for you!` }] }
+              { role: "model", parts: [{ text: ok ? ` I've successfully performed that task for you!` : ` I wasn't able to complete that task.` }] }
             ]);
           }
         } catch (jsonErr) {
@@ -85,8 +85,16 @@ const handleSend = async () => {
         await onAutoCreateGroup(action.params);
       }
       onRefresh(); // Refresh dashboard data
+      return true;
     } catch (err) {
+      const reason = err?.response?.data?.message || err?.message || "The task could not be completed.";
       console.error("Task failed", err);
+      toast.error(reason);
+      setMessages(prev => [
+        ...prev,
+        { role: "model", parts: [{ text: ` Sorry, I couldn't do that: ${reason}` }] }
+      ]);
+      return false;
     }
   };
 

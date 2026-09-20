@@ -132,23 +132,49 @@ const Dashboard = () => {
 
   // --- AI AUTO-HANDLERS ---
   const handleAutoCreateGroup = async (params) => {
-    const memberNames = (params.members && params.members.length) ? params.members : [];
+    const memberNames = (params.members && params.members.length)
+      ? params.members.map(m => String(m).trim()).filter(Boolean).slice(0, 29)
+      : [];
     const resolved = [];
+    const missing = [];
+
     for (const name of memberNames) {
+      let match = null;
       try {
         const res = await api.get('/users/search', { params: { q: name } });
-        const match = res.data.find(u => u.name.toLowerCase() === name.toLowerCase());
-        if (match) resolved.push(match._id);
-      } catch { /* ignore */ }
+        const q = name.toLowerCase();
+        const candidates = res.data;
+        match =
+          candidates.find(u => u.name.toLowerCase() === q) ||
+          candidates.find(u => u.email.toLowerCase() === q) ||
+          candidates.find(u => {
+            const t = u.name.toLowerCase();
+            return t.includes(q) || q.split(/\s+/).some(w => t.includes(w));
+          });
+      } catch (error) {
+        const status = error.response?.status;
+        if (status === 401) throw new Error('Your session expired. Please log in again.');
+        if (status === 403) throw new Error('Verify your email to use the AI assistant.');
+        throw new Error('Could not check registered users right now. Please try again.');
+      }
+      if (match) resolved.push(match._id);
+      else missing.push(name);
     }
-    if (resolved.length === 0) {
-      toast.error(`No registered users found for "${memberNames.join('", "')}". Ask them to sign up first.`);
-      throw new Error("No registered users to add");
+
+    const unique = [...new Set(resolved)];
+    if (unique.length === 0) {
+      const listed = missing.length ? `"${missing.join('", "')}"` : 'the names provided';
+      toast.error(`No registered users match ${listed}. Ask them to sign up in the app first, then try again.`, {
+        duration: 6000,
+      });
+      throw new Error('No registered users to add');
     }
-    await handleCreateGroup({
-      name: params.name,
-      members: resolved
-    });
+    if (missing.length) {
+      toast.warning(`Couldn't add (not registered yet): ${missing.join(', ')}. Created the group with the others.`, {
+        duration: 6000,
+      });
+    }
+    await handleCreateGroup({ name: params.name, members: unique });
   };
 
   const handleAutoAddExpense = async (params) => {
