@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { MailCheck, Loader2, LogOut } from 'lucide-react';
+import { MailCheck, Loader2, LogOut, Inbox } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
 
@@ -41,20 +41,27 @@ const VerifyEmail = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 px-4">
+    <div className="relative min-h-screen flex items-center justify-center overflow-hidden px-4 py-10">
+      <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-amber-300/30 blur-3xl animate-blob" />
+      <div className="pointer-events-none absolute -bottom-28 -left-20 h-80 w-80 rounded-full bg-emerald-300/30 blur-3xl animate-blob [animation-delay:-7s]" />
+
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-md bg-white rounded-2xl shadow-xl border border-slate-200 p-6 sm:p-8 text-center"
+        initial={{ opacity: 0, y: 24, scale: 0.98 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 0.4, ease: 'easeOut' }}
+        className="glass w-full max-w-md rounded-3xl border border-white/60 p-6 text-center shadow-lift sm:p-8"
       >
-        <div className="flex flex-col items-center mb-6">
-          <div className="bg-gradient-to-br from-amber-400 to-orange-500 p-3 rounded-xl shadow-lg text-white mb-4">
-            <MailCheck size={28} />
+        <div className="mb-6 flex flex-col items-center">
+          <div className="mb-5 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 p-3.5 text-white shadow-lift">
+            <MailCheck size={30} strokeWidth={2.2} />
           </div>
-          <h1 className="text-2xl font-bold text-slate-900">Verify your email</h1>
-          <p className="text-sm text-slate-600 mt-2">
-            We sent a verification link to <span className="font-semibold text-slate-800">{user?.email}</span>.
-            Click it to activate your account.
+          <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 sm:text-3xl">
+            Verify your email
+          </h1>
+          <p className="mt-2 text-sm text-slate-500">
+            We sent a verification link to{' '}
+            <span className="font-semibold text-slate-700">{user?.email}</span>. Click it to
+            activate your account.
           </p>
         </div>
 
@@ -62,18 +69,22 @@ const VerifyEmail = () => {
           type="button"
           onClick={resend}
           disabled={sending}
-          className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-semibold py-2.5 rounded-lg transition-all active:scale-[0.98] disabled:opacity-60"
+          className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 py-2.5 font-semibold text-white shadow-lift transition-all hover:from-emerald-600 hover:to-teal-700 active:scale-[0.98] disabled:opacity-60"
         >
-          {sending && <Loader2 className="w-4 h-4 animate-spin" />}
+          {sending ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Inbox className="h-4 w-4" />
+          )}
           Resend verification email
         </button>
 
         <button
           type="button"
           onClick={logout}
-          className="mt-4 w-full flex items-center justify-center gap-2 text-sm text-slate-500 hover:text-red-600 transition-colors py-2"
+          className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl py-2 text-sm text-slate-500 transition-colors hover:bg-red-50 hover:text-red-600"
         >
-          <LogOut className="w-4 h-4" />
+          <LogOut className="h-4 w-4" />
           Log out
         </button>
       </motion.div>

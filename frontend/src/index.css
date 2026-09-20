@@ -1,7 +1,11 @@
+@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap");
 @import "tailwindcss";
 
 @theme {
+  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
   --color-slate-200: #e2e8f0;
+  --shadow-soft: 0 1px 2px rgb(15 23 42 / 0.04), 0 6px 24px -8px rgb(15 23 42 / 0.1);
+  --shadow-lift: 0 1px 2px rgb(15 23 42 / 0.05), 0 16px 40px -16px rgb(15 23 42 / 0.22);
 }
 
 :root {
@@ -11,7 +15,7 @@
   --card-foreground: 222.2 84% 4.9%;
   --popover: 0 0% 100%;
   --popover-foreground: 222.2 84% 4.9%;
-  --primary: 222.2 47.4% 11.2%;
+  --primary: 160 84% 32%;
   --primary-foreground: 210 40% 98%;
   --secondary: 210 40% 96.1%;
   --secondary-foreground: 222.2 47.4% 11.2%;
@@ -23,6 +27,63 @@
   --destructive-foreground: 210 40% 98%;
   --border: 214.3 31.8% 91.4%;
   --input: 214.3 31.8% 91.4%;
-  --ring: 222.2 84% 4.9%;
-  --radius: 0.5rem;
+  --ring: 160 84% 36%;
+  --radius: 0.75rem;
+}
+
+@layer base {
+  body {
+    @apply bg-slate-50 font-sans text-slate-800 antialiased;
+  }
+  ::selection {
+    background: rgb(16 185 129 / 0.25);
+  }
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(148 163 184 / 0.5) transparent;
+  }
+  *::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  *::-webkit-scrollbar-thumb {
+    background: rgb(148 163 184 / 0.45);
+    border-radius: 999px;
+  }
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+}
+
+/* Soft app background with glowing accents */
+.bg-app {
+  background:
+    radial-gradient(55rem 40rem at 8% -8%, rgb(16 185 129 / 0.09), transparent 60%),
+    radial-gradient(45rem 35rem at 110% 5%, rgb(20 184 166 / 0.1), transparent 60%),
+    radial-gradient(40rem 30rem at 50% 120%, rgb(99 102 241 / 0.06), transparent 60%),
+    #f8fafc;
+}
+
+/* Frosted glass surface */
+.glass {
+  background: rgb(255 255 255 / 0.82);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+/* Gentle floating blob for auth screens */
+@keyframes blob-float {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  33% { transform: translate3d(2rem, -1.5rem, 0) scale(1.08); }
+  66% { transform: translate3d(-1.5rem, 1rem, 0) scale(0.95); }
+}
+.animate-blob {
+  animation: blob-float 14s ease-in-out infinite;
 }

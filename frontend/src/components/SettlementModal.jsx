@@ -89,7 +89,7 @@ const SettlementModal = ({ isOpen, onClose, onSubmit, group, expenses, settlemen
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-125 bg-gray-300">
+      <DialogContent className="sm:max-w-lg overflow-y-auto max-h-[90vh]">
         <DialogHeader>
           <DialogTitle className="text-xl sm:text-2xl font-bold text-slate-900">Settle Dues - {group.name}</DialogTitle>
         </DialogHeader>
@@ -118,7 +118,7 @@ const SettlementModal = ({ isOpen, onClose, onSubmit, group, expenses, settlemen
                 id="from"
                 value={from}
                 onChange={(e) => setFrom(e.target.value)}
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none transition-all bg-white"
+                className="w-full px-4 py-2 border border-slate-200 rounded-xl shadow-sm focus:ring-2 focus:ring-emerald-500 outline-none transition-all bg-white"
               >
                 <option value="">Select</option>
                 {activeMembers.map(member => (
@@ -135,7 +135,7 @@ const SettlementModal = ({ isOpen, onClose, onSubmit, group, expenses, settlemen
                 id="to"
                 value={to}
                 onChange={(e) => setTo(e.target.value)}
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none transition-all bg-white"
+                className="w-full px-4 py-2 border border-slate-200 rounded-xl shadow-sm focus:ring-2 focus:ring-emerald-500 outline-none transition-all bg-white"
               >
                 <option value="">Select</option>
                 {activeMembers.map(member => (
@@ -168,7 +168,7 @@ const SettlementModal = ({ isOpen, onClose, onSubmit, group, expenses, settlemen
                 step="0.01"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
-                className="w-full pl-7 pr-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none"
+                className="w-full pl-7 pr-4 py-2 border border-slate-200 rounded-xl shadow-sm focus:ring-2 focus:ring-emerald-500 outline-none"
                 placeholder="0.00"
               />
             </div>

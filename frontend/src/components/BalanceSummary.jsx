@@ -2,6 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { TrendingUp, TrendingDown, CheckCircle, Users } from 'lucide-react';
 import { memberId, memberName } from '@/lib/members';
+import { initials, avatarGradient } from '@/lib/avatar';
 
 const BalanceSummary = ({ groups, expenses, settlements }) => {
   const calculateGroupBalances = (group) => {
@@ -70,10 +71,12 @@ const BalanceSummary = ({ groups, expenses, settlements }) => {
 
   if (groups.length === 0) {
     return (
-      <div className="bg-white rounded-xl p-6 sm:p-12 text-center shadow-md border border-slate-200">
-        <Users className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-        <h3 className="text-xl font-semibold text-slate-900 mb-2">No groups yet</h3>
-        <p className="text-slate-600">Create a group to see balance summaries</p>
+      <div className="rounded-2xl border border-dashed border-slate-300 bg-white/60 p-8 sm:p-14 text-center shadow-sm">
+        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-100 to-indigo-100">
+          <Users className="h-8 w-8 text-blue-600" />
+        </div>
+        <h3 className="text-xl font-bold text-slate-900 mb-2">No groups yet</h3>
+        <p className="text-slate-500">Create a group to see balance summaries</p>
       </div>
     );
   }
@@ -91,11 +94,11 @@ const BalanceSummary = ({ groups, expenses, settlements }) => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: groupIndex * 0.1 }}
-            className="bg-white rounded-xl p-6 shadow-md border border-slate-200"
+            className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-soft sm:p-6"
           >
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-6">
               <div className="flex items-center gap-3 min-w-0">
-                <div className="bg-gradient-to-br from-blue-500 to-indigo-600 p-2 sm:p-3 rounded-lg shrink-0">
+                <div className="bg-gradient-to-br from-blue-500 to-indigo-600 p-2 sm:p-3 rounded-xl shrink-0 shadow-soft">
                   <Users className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                 </div>
                 <div className="min-w-0">
@@ -118,20 +121,25 @@ const BalanceSummary = ({ groups, expenses, settlements }) => {
                   {Object.entries(balances).map(([member, balance]) => {
                     const name = group.members.find(m => memberId(m) === member);
                     return (
-                      <div key={member} className="flex items-center justify-between gap-2 p-3 bg-slate-50 rounded-lg">
-                        <span className="font-medium text-slate-900 min-w-0 truncate">{memberName(name)}</span>
+                      <div key={member} className="flex items-center justify-between gap-3 p-3 bg-slate-50 rounded-xl">
+                        <span className="flex items-center gap-2 min-w-0 flex-1">
+                          <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gradient-to-br ${avatarGradient(memberName(name))} text-[9px] font-bold text-white`}>
+                            {initials(memberName(name))}
+                          </span>
+                          <span className="font-medium text-slate-900 min-w-0 truncate">{memberName(name)}</span>
+                        </span>
                         {balance > 0.01 ? (
-                          <div className="flex items-center gap-2 text-emerald-600 shrink-0">
-                            <TrendingUp className="w-4 h-4" />
-                            <span className="font-bold">+₹{balance.toFixed(2)}</span>
+                          <div className="flex items-center gap-1.5 text-emerald-600 shrink-0">
+                            <TrendingUp className="w-4 h-4 shrink-0" />
+                            <span className="font-bold whitespace-nowrap">+₹{balance.toFixed(2)}</span>
                           </div>
                         ) : balance < -0.01 ? (
-                          <div className="flex items-center gap-2 text-red-600 shrink-0">
-                            <TrendingDown className="w-4 h-4" />
-                            <span className="font-bold">-₹{Math.abs(balance).toFixed(2)}</span>
+                          <div className="flex items-center gap-1.5 text-red-600 shrink-0">
+                            <TrendingDown className="w-4 h-4 shrink-0" />
+                            <span className="font-bold whitespace-nowrap">-₹{Math.abs(balance).toFixed(2)}</span>
                           </div>
                         ) : (
-                          <span className="text-slate-400 font-semibold">₹0.00</span>
+                          <span className="text-slate-400 font-semibold shrink-0 whitespace-nowrap">₹0.00</span>
                         )}
                       </div>
                     );
@@ -152,15 +160,20 @@ const BalanceSummary = ({ groups, expenses, settlements }) => {
                       const from = group.members.find(m => memberId(m) === settlement.from);
                       const to = group.members.find(m => memberId(m) === settlement.to);
                       return (
-                        <div key={idx} className="p-3 bg-amber-50 rounded-lg border border-amber-200">
-                          <p className="text-sm text-slate-900">
-                            <span className="font-semibold">{memberName(from)}</span>
-                            {' owes '}
-                            <span className="font-semibold">{memberName(to)}</span>
-                          </p>
-                          <p className="text-lg font-bold text-amber-600 mt-1">
-                            ₹{settlement.amount}
-                          </p>
+                        <div key={idx} className="p-3 bg-amber-50 rounded-xl border border-amber-200">
+                          <div className="flex items-center gap-2">
+                            <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gradient-to-br ${avatarGradient(memberName(from))} text-[9px] font-bold text-white`}>
+                              {initials(memberName(from))}
+                            </span>
+                            <p className="text-sm text-slate-900 min-w-0 flex-1 truncate">
+                              <span className="font-semibold">{memberName(from)}</span>
+                              {' owes '}
+                              <span className="font-semibold">{memberName(to)}</span>
+                            </p>
+                            <p className="text-base sm:text-lg font-bold text-amber-600 shrink-0 whitespace-nowrap ml-1">
+                              ₹{settlement.amount}
+                            </p>
+                          </div>
                         </div>
                       );
                     })}

@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Users, Plus, Receipt, DollarSign, TrendingUp, Wallet, Loader2, LogOut, Mail, Check, X } from 'lucide-react';
+import {
+  Users, Plus, Receipt, TrendingUp, Wallet, Loader2, LogOut, Mail, Check, X, FolderPlus,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import GroupCard from '@/components/GroupCard';
@@ -10,12 +12,13 @@ import BalanceSummary from '@/components/BalanceSummary';
 import SettlementModal from './SettlementModal';
 import SettlementHistory from '@/components/SettlementHistory';
 import GroupModal from '@/components/GroupModal';
-import AIChatbot from '@/components/AIChatbot'; // Integrated AI Component
+import AIChatbot from '@/components/AIChatbot';
 import ExportReportButton from '@/components/ExportReportButton';
 import api from "@/api/axios";
 import { toast } from "sonner";
 import { useAuth } from '@/context/AuthContext';
 import socket from '@/lib/socket';
+import { initials, avatarGradient } from '@/lib/avatar';
 
 const Dashboard = () => {
   const { user, logout } = useAuth();
@@ -25,8 +28,7 @@ const Dashboard = () => {
   const [invites, setInvites] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedTab, setSelectedTab] = useState('groups');
-  
-  // Modal states
+
   const [showGroupModal, setShowGroupModal] = useState(false);
   const [showExpenseModal, setShowExpenseModal] = useState(false);
   const [showSettleModal, setShowSettleModal] = useState(false);
@@ -42,12 +44,12 @@ const Dashboard = () => {
         api.get('/settlements'),
         api.get('/groups/invites')
       ]);
-      
+
       const transformedGroups = groupsRes.data.map(g => ({ ...g, id: g._id }));
       const transformedExpenses = expensesRes.data.map(e => ({ ...e, id: e._id }));
       const transformedSettlements = settlementsRes.data.map(s => ({ ...s, id: s._id }));
       const transformedInvites = invitesRes.data.map(g => ({ ...g, id: g._id }));
-      
+
       setGroups(transformedGroups);
       setExpenses(transformedExpenses);
       setSettlements(transformedSettlements);
@@ -128,10 +130,8 @@ const Dashboard = () => {
     }
   };
 
-  // --- AI AUTO-HANDLERS (Task Automation) ---
-
+  // --- AI AUTO-HANDLERS ---
   const handleAutoCreateGroup = async (params) => {
-    // Resolve member names to registered user IDs (AI passes names)
     const memberNames = (params.members && params.members.length) ? params.members : [];
     const resolved = [];
     for (const name of memberNames) {
@@ -152,15 +152,18 @@ const Dashboard = () => {
   };
 
   const handleAutoAddExpense = async (params) => {
-    // Find the group ID by name since AI only knows names
     const targetGroup = groups.find(g => g.name.toLowerCase() === params.group.toLowerCase());
     if (!targetGroup) {
       toast.error(`Group "${params.group}" not found.`);
       throw new Error("Group not found");
     }
 
-    // Default to splitting equally among all active members (members are populated objects)
     const active = targetGroup.members.filter((m) => m.membershipStatus === 'active');
+    if (active.length === 0) {
+      toast.error(`No active members in "${targetGroup.name}".`);
+      throw new Error("No active members");
+    }
+
     const splitAmount = params.amount / active.length;
     const splits = active.map(m => ({
       member: m._id,
@@ -187,8 +190,7 @@ const Dashboard = () => {
     });
   };
 
-  // --- MANUAL HANDLERS (Used by Modals & AI) ---
-
+  // --- MANUAL HANDLERS ---
   const handleCreateGroup = async (groupData) => {
     try {
       const response = await api.post('/groups', {
@@ -200,7 +202,7 @@ const Dashboard = () => {
       setShowGroupModal(false);
       toast.success('Group created successfully!');
     } catch (error) {
-      toast.error('Failed to create group');
+      toast.error(error.response?.data?.message || 'Failed to create group');
     }
   };
 
@@ -223,6 +225,7 @@ const Dashboard = () => {
         description: expenseData.description,
         amount: parseFloat(expenseData.amount),
         paidBy: expenseData.paidBy,
+        splitType: expenseData.splitType,
         splits: expenseData.splits
       });
       const newExpense = { ...response.data, id: response.data._id };
@@ -230,7 +233,7 @@ const Dashboard = () => {
       setShowExpenseModal(false);
       toast.success('Expense added successfully!');
     } catch (error) {
-      toast.error('Failed to add expense');
+      toast.error(error.response?.data?.message || 'Failed to add expense');
     }
   };
 
@@ -252,7 +255,7 @@ const Dashboard = () => {
       setShowSettleModal(false);
       toast.success('Settlement recorded!');
     } catch (error) {
-      toast.error('Failed to record settlement');
+      toast.error(error.response?.data?.message || 'Failed to record settlement');
     }
   };
 
@@ -260,96 +263,156 @@ const Dashboard = () => {
     return expenses.reduce((sum, exp) => sum + parseFloat(exp.amount), 0);
   };
 
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <Loader2 className="w-10 h-10 animate-spin text-emerald-600" />
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="h-8 w-8 animate-spin text-emerald-600" />
+          <p className="text-sm text-slate-500">Loading your dashboard…</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 relative">
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-10 shadow-sm">
-        <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6 flex justify-between items-center gap-3">
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="bg-gradient-to-br from-emerald-500 to-teal-600 p-2 sm:p-3 rounded-xl shadow-lg text-white shrink-0">
-              <Wallet size={24} className="w-6 h-6 sm:w-7 sm:h-7" />
+    <div className="relative min-h-screen">
+      <header className="glass sticky top-0 z-10 border-b border-slate-200/70 shadow-sm">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 p-2.5 text-white shadow-lift sm:p-3">
+              <Wallet size={22} className="sm:h-6 sm:w-6" strokeWidth={2.2} />
             </div>
-            <h1 className="text-xl sm:text-3xl font-bold text-slate-900 truncate leading-tight">Expense Tracker</h1>
+            <div className="min-w-0">
+              <h1 className="truncate text-lg font-extrabold tracking-tight text-slate-900 sm:text-2xl">
+                ExpenceTracker
+              </h1>
+              <p className="hidden text-xs text-slate-500 sm:block">
+                {greeting}, {user?.name?.split(' ')[0]} 👋
+              </p>
+            </div>
           </div>
-          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+
+          <div className="flex shrink-0 items-center gap-2 sm:gap-3">
             {user && (
-              <span className="hidden sm:inline-flex text-sm font-medium text-slate-700 px-3 py-1 bg-slate-100 rounded-full truncate max-w-[200px]">{user.name}</span>
+              <span className="hidden items-center gap-2 rounded-full border border-slate-200 bg-white py-1 pl-1 pr-3 shadow-sm md:inline-flex">
+                <span className={`flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br ${avatarGradient(user.name)} text-[11px] font-bold text-white`}>
+                  {initials(user.name)}
+                </span>
+                <span className="max-w-[140px] truncate text-sm font-semibold text-slate-700">
+                  {user.name}
+                </span>
+              </span>
             )}
-            <Button onClick={() => setShowGroupModal(true)} className="bg-emerald-600 text-white shrink-0 px-3 sm:px-4">
-              <Plus className="w-4 h-4 sm:mr-2" /> <span className="hidden sm:inline">New Group</span>
+            <Button
+              onClick={() => setShowGroupModal(true)}
+              className="items-center gap-1.5 bg-gradient-to-r from-emerald-500 to-teal-600 px-3 text-white shadow-soft transition-all hover:from-emerald-600 hover:to-teal-700 active:scale-[0.98] sm:px-4"
+            >
+              <Plus className="h-4 w-4" />
+              <span className="hidden sm:inline">New Group</span>
             </Button>
-            <Button variant="ghost" size="icon" onClick={logout} title="Logout" className="shrink-0 hover:bg-red-50 hover:text-red-600" aria-label="Logout">
-              <LogOut className="w-5 h-5" />
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={logout}
+              title="Logout"
+              aria-label="Logout"
+              className="h-9 w-9 shrink-0 text-slate-500 hover:bg-rose-50 hover:text-rose-600"
+            >
+              <LogOut className="h-5 w-5" />
             </Button>
           </div>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-3 sm:px-4 py-6 sm:py-8">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-8">
-          <MetricCard title="Active Groups" value={groups.length} icon={<Users className="text-blue-600"/>} bgColor="bg-blue-100" delay={0.1} />
-          <MetricCard title="Total Expenses" value={`₹${calculateTotalExpenses().toFixed(2)}`} icon={<Receipt className="text-emerald-600"/>} bgColor="bg-emerald-100" delay={0.2} />
-          <MetricCard title="Settlements" value={settlements.length} icon={<TrendingUp className="text-amber-600"/>} bgColor="bg-amber-100" delay={0.3} />
+      <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3">
+          <MetricCard
+            title="Active Groups"
+            value={groups.length}
+            icon={<Users className="h-5 w-5 text-blue-600" />}
+            chipClass="from-blue-500 to-indigo-600"
+            delay={0.05}
+          />
+          <MetricCard
+            title="Total Expenses"
+            value={`₹${calculateTotalExpenses().toLocaleString('en-IN', { maximumFractionDigits: 2 })}`}
+            icon={<Receipt className="h-5 w-5 text-emerald-600" />}
+            chipClass="from-emerald-500 to-teal-600"
+            delay={0.12}
+          />
+          <MetricCard
+            title="Settlements"
+            value={settlements.length}
+            icon={<TrendingUp className="h-5 w-5 text-amber-600" />}
+            chipClass="from-amber-400 to-orange-500"
+            delay={0.19}
+          />
         </div>
 
         {invites.length > 0 && (
-          <div className="mb-8 bg-amber-50 border border-amber-200 rounded-xl p-4 sm:p-5">
-            <div className="flex items-center gap-2 mb-3">
-              <Mail className="w-4 h-4 text-amber-600" />
-              <h2 className="font-semibold text-slate-900">Pending Invitations ({invites.length})</h2>
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mt-6 rounded-2xl border border-amber-200/70 bg-amber-50/80 p-4 shadow-soft sm:p-5"
+          >
+            <div className="mb-3 flex items-center gap-2">
+              <Mail className="h-4 w-4 text-amber-600" />
+              <h2 className="font-bold text-slate-900">Pending Invitations ({invites.length})</h2>
             </div>
             <div className="space-y-2">
               {invites.map((invite) => (
-                <div key={invite.id} className="flex flex-col sm:flex-row sm:items-center gap-3 bg-white rounded-lg border border-amber-200 p-3">
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-slate-900 truncate">{invite.name}</p>
-                    <p className="text-sm text-slate-600 truncate">
-                      Invited by {invite.invite?.invitedBy || 'a member'}
-                      {invite.invite?.invitedAt ? ` · ${new Date(invite.invite.invitedAt).toLocaleDateString()}` : ''}
-                    </p>
+                <div key={invite.id} className="flex flex-col gap-3 rounded-xl border border-amber-200/70 bg-white p-3 shadow-sm sm:flex-row sm:items-center">
+                  <div className="flex min-w-0 flex-1 items-center gap-3">
+                    <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br ${avatarGradient(invite.name)} text-xs font-bold text-white`}>
+                      {initials(invite.name)}
+                    </span>
+                    <div className="min-w-0">
+                      <p className="truncate font-semibold text-slate-900">{invite.name}</p>
+                      <p className="truncate text-xs text-slate-500">
+                        Invited by {invite.invitedByName || 'a member'}
+                        {invite.invitedAt ? ` · ${new Date(invite.invitedAt).toLocaleDateString()}` : ''}
+                      </p>
+                    </div>
                   </div>
-                  <div className="flex gap-2 shrink-0">
-                    <Button size="sm" onClick={() => handleAcceptInvite(invite)} className="bg-emerald-600 hover:bg-emerald-700">
-                      <Check className="w-4 h-4 mr-1" /> Accept
+                  <div className="flex shrink-0 gap-2">
+                    <Button size="sm" onClick={() => handleAcceptInvite(invite)} className="flex-1 bg-gradient-to-r from-emerald-500 to-teal-600 text-white hover:from-emerald-600 hover:to-teal-700 sm:flex-none">
+                      <Check className="h-4 w-4" /> Accept
                     </Button>
-                    <Button size="sm" variant="outline" onClick={() => handleDeclineInvite(invite)} className="hover:bg-red-50 hover:text-red-600 hover:border-red-300">
-                      <X className="w-4 h-4 mr-1" /> Decline
+                    <Button size="sm" variant="outline" onClick={() => handleDeclineInvite(invite)} className="flex-1 border-slate-200 hover:border-rose-300 hover:bg-rose-50 hover:text-rose-600 sm:flex-none">
+                      <X className="h-4 w-4" /> Decline
                     </Button>
                   </div>
                 </div>
               ))}
             </div>
-          </div>
+          </motion.div>
         )}
 
-        <Tabs value={selectedTab} onValueChange={setSelectedTab}>
-          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 bg-white rounded-xl p-1 shadow-md border border-slate-200">
-            <TabsTrigger value="groups" className="text-xs sm:text-sm px-1 sm:px-3">Groups</TabsTrigger>
-            <TabsTrigger value="expenses" className="text-xs sm:text-sm px-1 sm:px-3">Expenses</TabsTrigger>
-            <TabsTrigger value="balances" className="text-xs sm:text-sm px-1 sm:px-3">Balances</TabsTrigger>
-            <TabsTrigger value="settlements" className="text-xs sm:text-sm px-1 sm:px-3">Settlements</TabsTrigger>
+        <Tabs value={selectedTab} onValueChange={setSelectedTab} className="mt-8">
+          <TabsList className="no-scrollbar flex w-full items-center gap-1.5 overflow-x-auto rounded-2xl border border-slate-200/80 bg-white p-1.5 shadow-soft sm:grid sm:grid-cols-4 sm:overflow-visible sm:gap-0">
+            <TabsTrigger value="groups" className="shrink-0 whitespace-nowrap rounded-xl px-4 py-2 text-xs font-semibold data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-500 data-[state=active]:to-teal-600 data-[state=active]:text-white sm:px-0 sm:text-sm">Groups</TabsTrigger>
+            <TabsTrigger value="expenses" className="shrink-0 whitespace-nowrap rounded-xl px-4 py-2 text-xs font-semibold data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-500 data-[state=active]:to-teal-600 data-[state=active]:text-white sm:px-0 sm:text-sm">Expenses</TabsTrigger>
+            <TabsTrigger value="balances" className="shrink-0 whitespace-nowrap rounded-xl px-4 py-2 text-xs font-semibold data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-500 data-[state=active]:to-teal-600 data-[state=active]:text-white sm:px-0 sm:text-sm">Balances</TabsTrigger>
+            <TabsTrigger value="settlements" className="shrink-0 whitespace-nowrap rounded-xl px-4 py-2 text-xs font-semibold data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-500 data-[state=active]:to-teal-600 data-[state=active]:text-white sm:px-0 sm:text-sm">Settlements</TabsTrigger>
           </TabsList>
 
           <TabsContent value="groups" className="mt-6">
             {groups.length === 0 ? (
-              <EmptyState title="No groups yet" onAction={() => setShowGroupModal(true)} />
+              <EmptyState onAction={() => setShowGroupModal(true)} />
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
                 {groups.map((group, index) => (
                   <GroupCard
                     key={group.id}
                     group={group}
+                    currentUserId={user?._id}
                     expenses={expenses.filter(e => e.groupId === group.id)}
                     settlements={settlements.filter(s => s.groupId === group.id)}
-                    onAddExpense={() => { setSelectedGroup(group); setShowExpenseModal(true); }}
-                    onSettle={() => { setSelectedGroup(group); setShowSettleModal(true); }}
+                    onAddExpense={(g) => { setSelectedGroup(g); setShowExpenseModal(true); }}
+                    onSettle={(g) => { setSelectedGroup(g); setShowSettleModal(true); }}
                     onDeleted={handleDeleteGroup}
                     index={index}
                   />
@@ -357,11 +420,10 @@ const Dashboard = () => {
               </div>
             )}
           </TabsContent>
-          
-          {/* Other tab contents map to existing lists... */}
+
           <TabsContent value="expenses" className="mt-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg sm:text-xl font-semibold text-slate-900">All Expenses</h2>
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+              <h2 className="text-lg font-bold text-slate-900">All Expenses</h2>
               <ExportReportButton expenses={expenses} groups={groups} settlements={settlements} />
             </div>
             <ExpenseList expenses={expenses} groups={groups} onDelete={handleDeleteExpense} />
@@ -377,14 +439,12 @@ const Dashboard = () => {
         </Tabs>
       </main>
 
-      {/* --- AI CHATBOT BUBBLE --- */}
-      <AIChatbot 
-        onRefresh={fetchData} 
-        onAutoAddExpense={handleAutoAddExpense} 
+      <AIChatbot
+        onRefresh={fetchData}
+        onAutoAddExpense={handleAutoAddExpense}
         onAutoCreateGroup={handleAutoCreateGroup}
       />
 
-      {/* Modals */}
       <GroupModal isOpen={showGroupModal} onClose={() => setShowGroupModal(false)} onSubmit={handleCreateGroup} />
       <ExpenseModal isOpen={showExpenseModal} onClose={() => setShowExpenseModal(false)} onSubmit={handleAddExpense} group={selectedGroup} />
       <SettlementModal isOpen={showSettleModal} onClose={() => setShowSettleModal(false)} onSubmit={handleSettle} group={selectedGroup} expenses={expenses} settlements={settlements} />
@@ -392,26 +452,44 @@ const Dashboard = () => {
   );
 };
 
-const MetricCard = ({ title, value, icon, bgColor, delay }) => (
-  <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay }} className="bg-white rounded-xl p-4 sm:p-6 shadow-md border border-slate-200">
-    <div className="flex items-center justify-between">
-      <div className="min-w-0">
-        <p className="text-xs sm:text-sm font-medium text-slate-600">{title}</p>
-        <p className="text-2xl sm:text-3xl font-bold text-slate-900 mt-2 break-all">{value}</p>
-      </div>
-      <div className={`${bgColor} p-2 sm:p-3 rounded-lg shrink-0`}>{icon}</div>
+const MetricCard = ({ title, value, icon, chipClass, delay }) => (
+  <motion.div
+    initial={{ opacity: 0, y: 16 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ delay }}
+    whileHover={{ y: -3 }}
+    className="flex items-center justify-between rounded-2xl border border-slate-200/80 bg-white p-4 shadow-soft transition-shadow hover:shadow-lift sm:p-5"
+  >
+    <div className="min-w-0">
+      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 sm:text-sm">{title}</p>
+      <p className="mt-1.5 truncate text-xl font-extrabold text-slate-900 sm:text-2xl">{value}</p>
+    </div>
+    <div className={`shrink-0 rounded-xl bg-gradient-to-br ${chipClass} p-2.5 text-white shadow-soft`}>
+      {icon}
     </div>
   </motion.div>
 );
 
-const EmptyState = ({ title, onAction }) => (
-  <div className="bg-white rounded-xl p-6 sm:p-12 text-center shadow-md border border-slate-200">
-    <Users className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-    <h3 className="text-xl font-semibold text-slate-900 mb-2">{title}</h3>
-    <Button onClick={onAction} className="bg-emerald-600 text-white mt-4">
-      <Plus className="w-4 h-4 mr-2" /> Create Group
+const EmptyState = ({ onAction }) => (
+  <motion.div
+    initial={{ opacity: 0, y: 12 }}
+    animate={{ opacity: 1, y: 0 }}
+    className="rounded-2xl border border-dashed border-slate-300 bg-white/60 p-8 text-center shadow-sm sm:p-14"
+  >
+    <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-100 to-teal-100">
+      <FolderPlus className="h-8 w-8 text-emerald-600" />
+    </div>
+    <h3 className="text-xl font-bold text-slate-900">No groups yet</h3>
+    <p className="mx-auto mt-1.5 max-w-sm text-sm text-slate-500">
+      Create a group, invite your friends, and start tracking shared expenses together.
+    </p>
+    <Button
+      onClick={onAction}
+      className="mt-5 gap-2 bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-soft hover:from-emerald-600 hover:to-teal-700"
+    >
+      <Plus className="h-4 w-4" /> Create Group
     </Button>
-  </div>
+  </motion.div>
 );
 
 export default Dashboard;

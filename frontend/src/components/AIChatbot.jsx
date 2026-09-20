@@ -94,34 +94,38 @@ const handleSend = async () => {
     <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50">
       {isOpen ? (
         <div className="w-[calc(100vw-2rem)] max-w-80 sm:w-80 h-[70vh] max-h-[520px] sm:h-[450px] bg-white rounded-2xl shadow-2xl flex flex-col border border-slate-200 animate-in slide-in-from-bottom-5">
-          <div className="p-4 bg-emerald-600 text-white rounded-t-2xl flex justify-between items-center">
-            <span className="flex items-center gap-2 font-medium"><Bot size={20}/> ExpenseBuddy AI</span>
-            <X className="cursor-pointer hover:rotate-90 transition-transform" onClick={() => setIsOpen(false)} />
+          <div className="p-4 bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-t-2xl flex justify-between items-center">
+            <span className="flex items-center gap-2 font-bold tracking-tight"><Bot size={20}/> ExpenseBuddy AI</span>
+            <X className="cursor-pointer hover:rotate-90 hover:bg-white/10 rounded-full p-1 transition-all" onClick={() => setIsOpen(false)} />
           </div>
           
           <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-slate-50">
             {messages.map((m, i) => (
               <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                 <div className={`p-3 rounded-2xl text-sm max-w-[85%] ${
-                  m.role === 'user' ? 'bg-emerald-600 text-white shadow-md' : 'bg-white text-slate-800 border'
+                  m.role === 'user' ? 'bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-soft' : 'bg-white text-slate-800 border border-slate-200 shadow-sm'
                 }`}>
                   {m.parts[0].text}
                 </div>
               </div>
             ))}
-            {loading && <Loader2 className="w-5 h-5 animate-spin text-emerald-600" />}
+            {loading && (
+              <div className="flex items-center gap-2 text-xs text-slate-400">
+                <Loader2 className="w-4 h-4 animate-spin text-emerald-600" /> thinking…
+              </div>
+            )}
             <div ref={scrollRef} />
           </div>
 
-          <div className="p-3 border-t bg-white flex gap-2">
+          <div className="p-3 border-t bg-white flex gap-2 items-center">
             <input 
-              className="flex-1 outline-none text-sm p-2" 
+              className="flex-1 outline-none text-sm p-2 rounded-xl border border-slate-200 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-500/15 transition-all" 
               value={input} 
               onChange={e => setInput(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && handleSend()}
               placeholder="e.g. Add 50 for Pizza in Trip" 
             />
-            <button onClick={handleSend} className="bg-emerald-600 p-2 rounded-lg text-white">
+            <button onClick={handleSend} disabled={loading || !input.trim()} className="bg-gradient-to-r from-emerald-500 to-teal-600 p-2 rounded-xl text-white shadow-soft disabled:opacity-50 active:scale-95 transition-all">
               <Send size={18} />
             </button>
           </div>
@@ -129,7 +133,7 @@ const handleSend = async () => {
       ) : (
         <button 
           onClick={() => setIsOpen(true)} 
-          className="p-4 bg-emerald-600 rounded-full text-white shadow-lg hover:scale-110 active:scale-95 transition-all"
+          className="p-4 bg-gradient-to-r from-emerald-500 to-teal-600 rounded-full text-white shadow-lift hover:scale-110 active:scale-95 transition-all"
         >
           <MessageCircle size={28} />
         </button>
