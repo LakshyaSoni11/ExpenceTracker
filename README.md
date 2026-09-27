@@ -16,6 +16,12 @@ Track shared expenses, split bills equally / by exact amount / by percentage, se
 ![Vercel](https://img.shields.io/badge/Vercel-000000?style=for-the-badge&logo=vercel&logoColor=white)
 ![Render](https://img.shields.io/badge/Render-46E3B7?style=for-the-badge&logo=render&logoColor=white)
 
+### 🚀 Try the live app — <a href="https://expence-tracker-red-phi.vercel.app">**expence-tracker-red-phi.vercel.app**</a>
+
+[![Live Demo](https://img.shields.io/badge/LIVE_DEMO-expence--tracker--red--phi.vercel.app-059669?style=for-the-badge&logo=vercel)](https://expence-tracker-red-phi.vercel.app)
+[![View on GitHub](https://img.shields.io/badge/Repo-LakshyaSoni11%2FExpenceTracker-181717?style=for-the-badge&logo=github)](https://github.com/LakshyaSoni11/ExpenceTracker)
+[![Backend Health](https://img.shields.io/badge/API-https%3A%2F%2Fexpencetracker--6y0c.onrender.com-2f81f7?style=for-the-badge&logo=render)](https://expencetracker-6y0c.onrender.com/api/health)
+
 </div>
 
 ---
@@ -115,7 +121,7 @@ Browser ──▶ React SPA (Vercel)
 
 | App | URL |
 |---|---|
-| **Frontend (Vercel)** | https://expence-tracker-app-three.vercel.app |
+| **Frontend (Vercel)** | https://expence-tracker-red-phi.vercel.app |
 | **Backend (Render)** | https://expencetracker-6y0c.onrender.com/api (health: `/api/health`) |
 
 > You need a verified account to use the app. Register, then click the link sent to your inbox.
