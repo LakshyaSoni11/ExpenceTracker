@@ -168,7 +168,7 @@ const SettlementModal = ({ isOpen, onClose, onSubmit, group, expenses, settlemen
                 step="0.01"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
-                className="w-full pl-7 pr-4 py-2 border border-slate-200 rounded-xl shadow-sm focus:ring-2 focus:ring-emerald-500 outline-none"
+                className="w-full pl-7 pr-4 py-2 border border-slate-200 rounded-xl shadow-sm bg-white focus:ring-2 focus:ring-emerald-500 outline-none"
                 placeholder="0.00"
               />
             </div>

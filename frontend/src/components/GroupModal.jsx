@@ -89,7 +89,7 @@ const GroupModal = ({ isOpen, onClose, onSubmit }) => {
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full px-4 py-2 border border-slate-200 rounded-xl shadow-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all"
+              className="w-full px-4 py-2 border border-slate-200 rounded-xl shadow-sm bg-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all"
               placeholder="e.g., Vegas Trip, Roommates, Office Lunch"
             />
           </div>
@@ -106,7 +106,7 @@ const GroupModal = ({ isOpen, onClose, onSubmit }) => {
                   setQuery(e.target.value);
                   searchUsers(e.target.value);
                 }}
-                className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-xl shadow-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all"
+                className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-xl shadow-sm bg-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all"
                 placeholder="Search by email or name"
               />
               {query.trim() && (

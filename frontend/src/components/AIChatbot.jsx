@@ -1,12 +1,17 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Bot, Send, X, MessageCircle, Loader2 } from 'lucide-react';
-import api from '@/api/axios';
+import api, { TOKEN_KEY } from '@/api/axios';
 import { toast } from 'sonner';
+
+const baseURL =
+  import.meta.env.VITE_API_URL ||
+  (import.meta.env.DEV ? 'http://localhost:5000/api' : '/api');
 
 const AIChatbot = ({ onRefresh, onAutoAddExpense, onAutoCreateGroup }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [streamingText, setStreamingText] = useState("");
   const [messages, setMessages] = useState([
     { role: "model", parts: [{ text: "Hi! I'm ExpenseBuddy. I can add expenses or create groups if you just tell me what to do!" }] }
   ]);
@@ -14,66 +19,123 @@ const AIChatbot = ({ onRefresh, onAutoAddExpense, onAutoCreateGroup }) => {
 
   useEffect(() => {
     scrollRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  }, [messages, streamingText]);
 
 const handleSend = async () => {
-    if (!input.trim()) return;
+    if (!input.trim() || loading) return;
 
     // 1. Add the user's message to the local UI state
     const userMsg = { role: "user", parts: [{ text: input }] };
     setMessages(prev => [...prev, userMsg]);
     setInput("");
     setLoading(true);
+    setStreamingText("");
 
     try {
-      /**
-       * 2. PREPARE HISTORY FOR GEMINI
-       * Gemini requires the conversation to START with a 'user' role.
-       * If your first message in 'messages' is the bot greeting (role: 'model'), 
-       * we skip it for the API call.
-       */
-      const historyForAPI = messages[0]?.role === 'model' 
-        ? messages.slice(1) 
+      const historyForAPI = messages[0]?.role === 'model'
+        ? messages.slice(1)
         : messages;
 
-      // 3. Call the Backend
-      const { data } = await api.post('/chat', { 
-        message: input, 
-        history: historyForAPI 
+      const token = localStorage.getItem(TOKEN_KEY);
+      const res = await fetch(`${baseURL}/chat`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          message: input,
+          history: historyForAPI,
+          stream: true,
+        }),
       });
 
-      const botText = data.response;
-
-      // 4. Handle JSON Actions (Automation)
-      if (botText.startsWith('{')) {
+      if (!res.ok) {
+        let reason = "AI Assistant is offline";
         try {
-          const action = JSON.parse(botText);
-          if (action.type === "ACTION") {
-            const ok = await executeTask(action);
-            setMessages(prev => [
-              ...prev, 
-              { role: "model", parts: [{ text: ok ? ` I've successfully performed that task for you!` : ` I wasn't able to complete that task.` }] }
-            ]);
+          const errData = await res.json();
+          reason = errData?.message || errData?.error || reason;
+        } catch { /* ignore parse */ }
+        throw new Error(reason);
+      }
+
+      if (res.headers.get("content-type")?.includes("text/event-stream")) {
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+        let full = "";
+
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const events = buffer.split("\n\n");
+          buffer = events.pop() || "";
+          for (const evt of events) {
+            const line = evt.split("\n").find(l => l.startsWith("data: "));
+            if (!line) continue;
+            const data = JSON.parse(line.slice(6));
+            if (data.delta) {
+              full += data.delta;
+              setStreamingText(full);
+            }
+            if (data.done) break;
           }
-        } catch (jsonErr) {
-          // Fallback if it looked like JSON but wasn't valid
-          setMessages(prev => [...prev, { role: "model", parts: [{ text: botText }] }]);
+        }
+
+        setStreamingText("");
+
+        if (full.trim().startsWith('{')) {
+          try {
+            const action = JSON.parse(full.trim());
+            if (action.type === "ACTION") {
+              const ok = await executeTask(action);
+              setMessages(prev => [
+                ...prev,
+                { role: "model", parts: [{ text: ok ? ` I've successfully performed that task for you!` : ` I wasn't able to complete that task.` }] }
+              ]);
+            } else {
+              setMessages(prev => [...prev, { role: "model", parts: [{ text: full }] }]);
+            }
+          } catch {
+            setMessages(prev => [...prev, { role: "model", parts: [{ text: full }] }]);
+          }
+        } else if (full.trim()) {
+          setMessages(prev => [...prev, { role: "model", parts: [{ text: full }] }]);
         }
       } else {
-        // 5. Handle standard text responses
-        setMessages(prev => [...prev, { role: "model", parts: [{ text: botText }] }]);
+        // Fallback for non-stream responses
+        const data = await res.json();
+        const botText = data.response || "";
+        if (botText.startsWith('{')) {
+          try {
+            const action = JSON.parse(botText);
+            if (action.type === "ACTION") {
+              const ok = await executeTask(action);
+              setMessages(prev => [
+                ...prev,
+                { role: "model", parts: [{ text: ok ? ` I've successfully performed that task for you!` : ` I wasn't able to complete that task.` }] }
+              ]);
+            }
+          } catch {
+            setMessages(prev => [...prev, { role: "model", parts: [{ text: botText }] }]);
+          }
+        } else if (botText && !botText.startsWith('{')) {
+          setMessages(prev => [...prev, { role: "model", parts: [{ text: botText }] }]);
+        } else {
+          setMessages(prev => [...prev, { role: "model", parts: [{ text: botText }] }]);
+        }
       }
     } catch (err) {
       console.error("Chat Error:", err);
-      toast.error("AI Assistant is offline");
-      
-      // Optional: Add a message to the chat so the user knows it failed
+      toast.error(err.message || "AI Assistant is offline");
       setMessages(prev => [
-        ...prev, 
-        { role: "model", parts: [{ text: " Sorry, I'm having trouble connecting to the server right now." }] }
+        ...prev,
+        { role: "model", parts: [{ text: err.message || " Sorry, I'm having trouble connecting to the server right now." }] }
       ]);
     } finally {
       setLoading(false);
+      setStreamingText("");
     }
   };
 
@@ -117,7 +179,15 @@ const handleSend = async () => {
                 </div>
               </div>
             ))}
-            {loading && (
+            {loading && streamingText && (
+              <div className="flex justify-start">
+                <div className="p-3 rounded-2xl text-sm max-w-[85%] bg-white text-slate-800 border border-slate-200 shadow-sm">
+                  {streamingText}
+                  <span className="ml-0.5 inline-block w-1.5 h-3.5 align-middle bg-emerald-500 animate-pulse rounded-sm" />
+                </div>
+              </div>
+            )}
+            {loading && !streamingText && (
               <div className="flex items-center gap-2 text-xs text-slate-400">
                 <Loader2 className="w-4 h-4 animate-spin text-emerald-600" /> thinking…
               </div>
