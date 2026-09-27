@@ -20,11 +20,11 @@ export default defineConfig({
       output: {
         manualChunks(id) {
           if (!id.includes('node_modules')) return;
-          if (id.includes('framer-motion')) return 'motion';
-          if (id.includes('socket.io-client') || id.includes('socket.io')) return 'socket';
-          if (id.includes('html2canvas') || id.includes('jspdf') || id.includes('canvg')) return 'report';
-          if (id.includes('react-router') || id.includes('react-dom') || id.includes('react')) return 'react-vendor';
-          if (id.includes('lucide-react')) return 'icons';
+          // Heavy lazy-loaded report libraries stay in their own chunk,
+          // pulled in only when the export feature is used.
+          if (/(html2canvas|jspdf|canvg|dompurify|file-saver|html2canvas-pro)/i.test(id)) return 'report';
+          // Everything else third-party shares one vendor chunk to avoid
+          // cross-chunk circular imports (which cause TDZ ReferenceErrors).
           return 'vendor';
         },
       },
