@@ -12,15 +12,13 @@ export const handleAIChat = async (req, res) => {
 
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
-    //  Fetch Group Context (only the user's groups)
-    const groups = await Group.find({ members: { $elemMatch: { user: req.user._id, status: "active" } } })
-      .populate("members.user", "name");
+    //  Fetch Group + user context in parallel (both are independent DB reads)
+    const [groups, registered] = await Promise.all([
+      Group.find({ members: { $elemMatch: { user: req.user._id, status: "active" } } })
+        .populate("members.user", "name"),
+      User.find({ _id: { $ne: req.user._id } }).select("name").limit(20),
+    ]);
     const groupCtx = groups.map(g => `- ${g.name} (Members: ${g.members.map(m => m.user?.name || "…").join(",")})`).join("\n");
-
-    //  Registered users the current user may add to a group (excludes self)
-    const registered = await User.find({ _id: { $ne: req.user._id } })
-      .select("name")
-      .limit(20);
     const userList = registered.map(u => u.name).join(", ");
     const userCtx = userList ? `Registered users available to add to groups: [${userList}]` : "No other registered users yet.";
 
@@ -42,7 +40,12 @@ Do not use markdown backticks for JSON. Respond concisely. Otherwise use plain t
 
     const stream = req.body.stream === true;
 
-    //  Get a response, with a model fallback chain for transient capacity errors
+    //  Per-request timeout: never let a hung Gemini call stall the user
+    const TIMEOUT_MS = Number(process.env.GEMINI_TIMEOUT_MS) || 30000;
+
+    //  Get a response, with a model fallback chain for transient capacity errors.
+    //  Each model gets one immediate retry (transient 429/503 often recover on
+    //  their own) before switching to the next in line.
     let lastErr = null;
     const modelsToTry = [
       process.env.GEMINI_MODEL || "gemini-3.7-flash",
@@ -52,49 +55,67 @@ Do not use markdown backticks for JSON. Respond concisely. Otherwise use plain t
     ];
 
     for (const candidate of new Set(modelsToTry)) {
-      try {
-        const chat = genAI.getGenerativeModel({
-          model: candidate,
-          generationConfig: { maxOutputTokens: 500, temperature: 0.6 },
-        }).startChat({
-          history: cleanHistory,
-          systemInstruction: { parts: [{ text: systemInstruction }] },
-        });
+      const attempts = 2;
+      let stopChaining = false;
+      for (let attempt = 0; attempt <= attempts; attempt++) {
+        const ac = new AbortController();
+        const timer = setTimeout(() => ac.abort(), TIMEOUT_MS);
+        try {
+          const chat = genAI.getGenerativeModel(
+            {
+              model: candidate,
+              generationConfig: { maxOutputTokens: 500, temperature: 0.6 },
+            },
+            { timeout: TIMEOUT_MS, signal: ac.signal }
+          ).startChat({
+            history: cleanHistory,
+            systemInstruction: { parts: [{ text: systemInstruction }] },
+          });
 
-        if (stream) {
-          const result = await chat.sendMessageStream(message);
-          res.setHeader("Content-Type", "text/event-stream; charset=utf-8");
-          res.setHeader("Cache-Control", "no-cache, no-transform");
-          res.setHeader("Connection", "keep-alive");
-          res.setHeader("X-Accel-Buffering", "no");
-          res.flushHeaders?.();
-          let sent = false;
-          for await (const chunk of result.stream) {
-            const text = chunk.text();
-            if (text) {
-              sent = true;
-              res.write(`data: ${JSON.stringify({ delta: text })}\n\n`);
+          if (stream) {
+            const result = await chat.sendMessageStream(message);
+            res.setHeader("Content-Type", "text/event-stream; charset=utf-8");
+            res.setHeader("Cache-Control", "no-cache, no-transform");
+            res.setHeader("Connection", "keep-alive");
+            res.setHeader("X-Accel-Buffering", "no");
+            res.flushHeaders?.();
+            let sent = false;
+            for await (const chunk of result.stream) {
+              const text = chunk.text();
+              if (text) {
+                sent = true;
+                res.write(`data: ${JSON.stringify({ delta: text })}\n\n`);
+              }
             }
+            res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
+            res.end();
+            return;
           }
-          res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
-          res.end();
-          return;
-        }
 
-        const result = await chat.sendMessage(message);
-        const text = result.response.text();
-        if (text) {
-          return res.json({ response: text });
-        }
-      } catch (err) {
-        lastErr = err;
-        const msg = String(err.message || "");
-        console.error(`GEMINI ${candidate} failed:`, msg.slice(0, 150));
-        if (stream && res.headersSent) break;
-        if (!/503|429|Resource has been exhausted|high demand|LOAD\s*/i.test(msg)) {
-          break;
+          const result = await chat.sendMessage(message);
+          const text = result.response.text();
+          if (text) {
+            return res.json({ response: text });
+          }
+        } catch (err) {
+          lastErr = err;
+          const msg = String(err.message || "");
+          console.error(`GEMINI ${candidate} (attempt ${attempt + 1}) failed:`, msg.slice(0, 150));
+          if (stream && res.headersSent) return;
+          // Allowed to retry? Only transient capacity errors get retried/fallback.
+          if (!/503|429|Resource has been exhausted|high demand|LOAD\s*|AbortError|API_INTERNAL/i.test(msg)) {
+            stopChaining = true;
+            break;
+          }
+          if (attempt < attempts) {
+            await new Promise(r => setTimeout(r, 400 * (attempt + 1))); // brief backoff
+            continue;
+          }
+        } finally {
+          clearTimeout(timer);
         }
       }
+      if (stopChaining) break;
     }
 
     if (stream && !res.headersSent) {
